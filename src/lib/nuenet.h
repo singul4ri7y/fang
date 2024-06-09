@@ -216,7 +216,7 @@ nuenet_nn_grad_t  nuenet_nn_grad_construct(nuenet_nn_t nn);
 void              nuenet_nn_grad_destruct(nuenet_nn_grad_t grad);
 
 /* Initializes/zeros out the gradient structure. */
-void nuenet_nn_grad_init(nuenet_nn_grad_t grad);
+void              nuenet_nn_grad_init(nuenet_nn_grad_t grad);
 
 /* Prints the gradient structure. */
 void              nuenet_nn_grad_print(nuenet_nn_grad_t grad, 
@@ -330,9 +330,6 @@ nuenet_mat_t nuenet_mat_sub(nuenet_mat_t mat, uint64_t rows, uint64_t cols,
 
     return nuenet_mat_new(rows, cols, mat.stride, mat.data + 
         start_row * mat.stride + start_col);
-
-    // return nuenet_mat_new(rows, cols, mat.sub.stride, 
-    //     mat.sub.start_row + start_row, mat.sub.start_col + start_col, mat.data);
 }
 
 /* Returns a specific row matrix sub-matrix. */
