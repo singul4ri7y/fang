@@ -38,7 +38,7 @@ int main(void) {
 
     printf("cost before = %f\n", nuenet_nn_cost(nn, input, output));
 
-    for(int i = 0; i < 100000; i++) {
+    for(int i = 0; i < 1000000; i++) {
         nuenet_nn_back_prop(nn, grad, input, output);
         nuenet_nn_apply_batch_gd(nn, grad, 1);
     }
