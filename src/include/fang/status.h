@@ -32,7 +32,10 @@
 /* ---------------- TENSOR ---------------- */
 
 /* Invalid dimension. */
-#define FANG_INVDIM    22
+#define FANG_INVDIM    21
+
+/* Invalid datatype. */
+#define FANG_INVTYP    22
 
 /* ---------------- TENSOR END ---------------- */
 

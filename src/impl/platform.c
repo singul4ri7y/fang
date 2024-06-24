@@ -95,26 +95,26 @@ int fang_platform_create(fang_platform_type_t type,
 
     memset(plat, 0, sizeof(fang_platform_t));
 
-    plat -> type    = type;
-    plat -> ntens   = 0;
-    plat -> realloc = realloc;
+    plat->type    = type;
+    plat->ntens   = 0;
+    plat->realloc = realloc;
 
     switch(type) {
         case FANG_PLATFORM_TYPE_CPU: {
-            _fang_platform_cpu_t *cpu_plat;
-
             {
                 int code;
                 if(!FANG_OK(code = 
-                    _fang_platform_cpu_create(&cpu_plat, realloc))) 
+                    _fang_platform_cpu_create(&plat->private, realloc))) 
                 {
                     res = code;
                     goto out;
                 }
             }
 
-            plat -> private = (void *) cpu_plat;
-            plat -> release = _fang_platform_cpu_release;
+            plat->release = _fang_platform_cpu_release;
+
+            /* Get the operations. */
+            _fang_platform_cpu_get_ops(&plat->ops);
         } break;
 
         default: {
@@ -138,19 +138,19 @@ int fang_platform_release(uint16_t pid) {
     fang_platform_t *plat = _s_platforms + pid;
 
     /* Has the platform already been freed? */
-    if(plat -> type == FANG_PLATFORM_TYPE_INVALID) {
+    if(plat->type == FANG_PLATFORM_TYPE_INVALID) {
         res = -FANG_NOPL;
         goto out;
     }
 
     /* We cannot release a platform when tensors are allocated to it. */
-    if(plat -> ntens != 0) {
+    if(plat->ntens != 0) {
         res = -FANG_NTEN;
         goto out;
     }
 
-    plat -> release(plat -> private, plat -> realloc);
-    plat -> type = FANG_PLATFORM_TYPE_INVALID;
+    plat->release(plat->private, plat->realloc);
+    plat->type = FANG_PLATFORM_TYPE_INVALID;
 
 out: 
     return res;

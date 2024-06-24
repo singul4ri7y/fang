@@ -3,40 +3,20 @@
 
 #include <fang/memory.h>
 
-/* Represents a single CPU. */
-typedef struct _fang_cpu {
-    /* Name of the CPU. */
-    char *name;
-
-    /* The threads we can use. */
-    /* This maybe double the amount of cores if Intel Hyperthreading 
-       is enabled. */
-// #ifdef __linux__
-//     pthread_t *thread;
-// #endif
-    int nthread;
-
-    /* Number of active cores. */
-    int nact;
-} _fang_cpu_t;
-
-/* Fundamental structure representing all the CPUs in a machine. */
-typedef struct _fang_platform_cpu {
-    _fang_cpu_t *cpu;
-    int ncpu;
-} _fang_platform_cpu_t;
-
 /* ---------------- PRIVATE ---------------- */
 
 /* Creates a CPU platform specific private structure. */
 /* The structure itself is explicitly allocated. */
 
-int  _fang_platform_cpu_create(_fang_platform_cpu_t **restrict cpup, 
+int  _fang_platform_cpu_create(void **restrict private, 
         fang_reallocator_t realloc);
 
 /* Release CPU platform. */
 void _fang_platform_cpu_release(void *restrict private, 
         fang_reallocator_t realloc);
+
+/* Get the CPU platform tensor operation structure. */
+void _fang_platform_cpu_get_ops(fang_ten_ops_t **restrict ops);
 
 /* ---------------- PRIVATE END ---------------- */
 
