@@ -35,8 +35,12 @@ out:
 
 /* Default reallocator of Fang, used as an alternative when there is no 
    allocator explicitly used. */
+/* Makes sure the pointer is `FANG_MEMALIGN` byte aligned. */
 static void *_fang_default_reallocator(void *buff, size_t size) {
     void *res = NULL;
+
+    /* We are in alignment. Get the actual pointer. */
+    buff = buff != NULL ? ((void **) buff)[-1] : NULL;
 
     /* Both invalid 'buff' and 'size' is not acceptable. */
     if(buff == NULL && size == 0) 
@@ -48,14 +52,27 @@ static void *_fang_default_reallocator(void *buff, size_t size) {
         goto out;
     }
 
+    /* We may store the allocated memory location here. */
+    void *ptr = NULL;
+    /* Maximum size of a single register in machine. */
+    size_t vsiz = sizeof(void *);
+
     /* If 'buf' is NULL, we are trying to allocate the memory. */
     if(buff == NULL) {
-        res = malloc(size);
-        goto out;
+        ptr = malloc(size + FANG_MEMALIGN + vsiz);
+        goto calc_addr;
     }
 
     /* On normal occasions, we are trying to extend/shrink memory. */
-    res = realloc(buff, size);
+    ptr = realloc(buff, size + FANG_MEMALIGN + vsiz);
+
+calc_addr: 
+    /* Now calculate the `FANG_MEMALIGN` byte aligned address. */
+    res = (void *) (((uintptr_t) ptr + vsiz + FANG_MEMALIGN - 1) 
+        & ~(FANG_MEMALIGN - 1)); 
+
+    /* Store the actual pointer in the previous slot. */
+    ((void **) res)[-1] = ptr;
 
 out: 
     return res;

@@ -6,12 +6,11 @@
 /* ---------------- PRIVATE ---------------- */
 
 /* Creates a CPU platform specific private structure. */
-/* The structure itself is explicitly allocated. */
-
+/* The structure itself is heap allocated. */
 int  _fang_platform_cpu_create(void **restrict private, 
         fang_reallocator_t realloc);
 
-/* Release CPU platform. */
+/* Release CPU platform and related resources. */
 void _fang_platform_cpu_release(void *restrict private, 
         fang_reallocator_t realloc);
 

@@ -2,7 +2,7 @@
 #define FANG_PLATFORM_H
 
 #include <fang/tensor.h>
-#include <fang/plat/cpu.h>
+#include <fang/plat/cpu/cpu.h>
 
 #define FANG_MAX_PLATFORMS    1024
 

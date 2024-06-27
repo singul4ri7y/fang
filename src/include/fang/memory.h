@@ -3,6 +3,12 @@
 
 #include <stddef.h>
 
+/* Default memory alignement used in Fang (in bytes). */
+/* If you intend to use your own reallocator, make sure it's 
+   aligned in the following bytes boundary. 64-byte is good 
+   for cache lines, specially in con-current environment. */
+#define FANG_MEMALIGN    64
+
 /* The reallocator function signature. */
 /* If 'buff' is NULL, the function allocates 'size' amount of bytes. */
 /* If 'size' is NULL, the function frees 'buff'. */
