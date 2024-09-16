@@ -57,8 +57,30 @@ out:
     return res;
 }
 
+/* Concatenates a NULL terminated buffer. */
+int fang_buffer_concat(fang_buffer_t *restrict buff, void *data) {
+    int res = FANG_OK;
+
+    /* Think of the buffer as a pure string buffer not taking termination
+       element/character into account. */
+    int count = strlen((const char *) data);
+    /* Keep increasing buffer until we are OK. */
+    while(FANG_LIKELY(buff->count + count > buff->capacity)) {
+        buff->capacity = _FANG_GROW_CAPACITY(buff->capacity);
+        buff->data     = buff->realloc(buff->data, buff->capacity * buff->n);
+        _FANG_REPORT(buff->data, res);
+    }
+
+    /* Copy as pure string buffer. */
+    strcpy((char *) buff->data + (buff->count * buff->n), (const char *) data);
+    buff->count += count;
+
+out:
+    return res;
+}
+
 /* Pushes list of elements to the buffer. */
-int fang_buffer_concat(fang_buffer_t *restrict buff, void *data, size_t count) {
+int fang_buffer_append(fang_buffer_t *restrict buff, void *data, size_t count) {
     int res = FANG_OK;
 
     /* Keep increasing buffer until we are OK. */
@@ -70,6 +92,7 @@ int fang_buffer_concat(fang_buffer_t *restrict buff, void *data, size_t count) {
 
     memcpy((char *) buff->data + (buff->count * buff->n), data,
         count * buff->n);
+    buff->count += count;
 
 out:
     return res;

@@ -3,10 +3,11 @@
 #include <fang/status.h>
 #include <memory.h>
 
-/* Buffer creation */
+/* Buffer creation test. */
 Test(fang_buffer, create) {
     fang_buffer_t buff;
     int status = FANG_BUFFER_CREATE(&buff, _fang_default_reallocator, int);
+
     cr_assert_eq(status, FANG_OK, "Buffer creation should succeed");
     cr_assert_eq(buff.realloc, _fang_default_reallocator, "Buffer reallocator "
         "should be properly set up");
@@ -15,4 +16,7 @@ Test(fang_buffer, create) {
         "capacity should be equal to %d", FANG_BUFFER_INIT_CAPACITY);
     cr_assert_eq(buff.n, sizeof(int), "Buffer element size should be %d in "
         "this test", sizeof(int));
+
+
 }
+

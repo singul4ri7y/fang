@@ -45,8 +45,12 @@ FANG_API int fang_buffer_create(fang_buffer_t *restrict buff,
 FANG_API FANG_HOT int fang_buffer_add(fang_buffer_t *restrict buff,
     void *restrict data);
 
-/* Pushes list of elements to the buffer. */
+/* Concatenates a NULL terminated buffer. */
 FANG_API FANG_HOT int fang_buffer_concat(fang_buffer_t *restrict buff,
+    void *data);
+
+/* Pushes list of elements to the buffer. */
+FANG_API FANG_HOT int fang_buffer_append(fang_buffer_t *restrict buff,
     void *data, size_t count);
 
 /* Get element data denoted by index. */
