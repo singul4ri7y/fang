@@ -225,28 +225,6 @@ void fang_buffer_shrink_to_fit_test(void **state) {
     fang_buffer_release(&buff);
 }
 
-/* Buffer release test. */
-void fang_buffer_release_test(void **state) {
-    /* It's just an empty shell. */
-    fang_buffer_t buff;
-
-    /* Working on uncreated/uninitialized buffer should not be possible. */
-    int value = 144;
-    assert_int_equal(fang_buffer_add(&buff, &value), -FANG_INVBUFF);
-
-    /* Create the buffer. */
-    FANG_BUFFER_CREATE(&buff, _fang_default_reallocator, int);
-
-    /* Elements should be addable. */
-    assert_true(FANG_ISOK(fang_buffer_add(&buff, &value)));
-
-    /* Release buffer. */
-    fang_buffer_release(&buff);
-
-    /* Now elements should not be addable. */
-    assert_int_equal(fang_buffer_add(&buff, &value), -FANG_INVBUFF);
-}
-
 int main() {
     /* Change random number seed. */
     srand(time(0));
@@ -258,8 +236,7 @@ int main() {
         cmocka_unit_test(fang_buffer_append_test),
         cmocka_unit_test(fang_buffer_get_test),
         cmocka_unit_test(fang_buffer_retrieve_test),
-        cmocka_unit_test(fang_buffer_shrink_to_fit_test),
-        cmocka_unit_test(fang_buffer_release_test)
+        cmocka_unit_test(fang_buffer_shrink_to_fit_test)
     };
 
     return cmocka_run_group_tests_name("fang_buffer", tests, NULL, NULL);

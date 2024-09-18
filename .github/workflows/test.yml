@@ -24,7 +24,7 @@ jobs:
         - name: Install dependencies
           run: |
               sudo apt-get update
-              sudo apt-get install -y cmake ninja-build cmocka0 cmocka-dev
+              sudo apt-get install -y cmake ninja-build libcmocka0 libcmocka-dev
 
         - name: Create build directory
           run: mkdir build
@@ -39,4 +39,4 @@ jobs:
 
         - name: Run tests
           working-directory: ./build
-          run: ninja test
+          run: ctest --output-on-failure
