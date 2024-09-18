@@ -8,14 +8,14 @@
 /* ================ HELPER MACRO ================ */
 
 /* Initial capacity. */
-#define FANG_BUFFER_INIT_CAPACITY             64
+#define FANG_BUFFER_INIT_CAPACITY                  64
 
 /* Helper macro to create buffer of specific type. */
 #define FANG_BUFFER_CREATE(buff, realloc, type)    fang_buffer_create(buff,    \
     realloc, sizeof(type));
 
 /* Get an element from buffer. */
-#define FANG_BUFFER_GET(buff, type, index)    (type *) fang_buffer_get(    \
+#define FANG_BUFFER_GET(buff, type, index)         (type *) fang_buffer_get(   \
     buff, index)
 
 /* ================ HELPER MACRO END ================ */
@@ -58,6 +58,8 @@ FANG_API FANG_HOT void *fang_buffer_get(fang_buffer_t *restrict buff,
     ptrdiff_t index);
 
 /* Retrieve buffer pointer and count from structure. */
+/* NOTE: It is always recommended to add a terminator character using
+ * `fang_buffer_add` while retrieving string type data. */
 FANG_API void *fang_buffer_retrieve(fang_buffer_t *restrict buff,
     size_t *restrict count);
 

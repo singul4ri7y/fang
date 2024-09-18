@@ -6,6 +6,14 @@ if(NOT BUILD_TYPE)
     set(BUILD_TYPE debug CACHE STRING "Fang build type" FORCE)
 endif()
 
+if(BUILD_TYPE STREQUAL "debug")
+    message(STATUS "Configuring Debug mode")
+elseif(BUILD_TYPE STREQUAL "release")
+    message(STATUS "Configuring Release mode")
+else()
+    message(FATAL_ERROR "BUILD_TYPE unrecognized, available: debug, release")
+endif()
+
 # Set C standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -15,7 +23,7 @@ if(MSVC)
     add_compile_options(/W4 /WX)
 else()
     add_compile_options(-pedantic -Wall -Wextra -Wformat-security -Wundef
-        -Wno-unused)
+        -Wuninitialized -Wunused)
 endif()
 
 # Build type specific flags
@@ -25,15 +33,15 @@ if(BUILD_TYPE STREQUAL "debug")
     if(MSVC)
         add_compile_options(/Od /Zi /RTC1 /MDd)
     else()
-        add_compile_options(-g -Og)
+        add_compile_options(-g -O0)
     endif()
-elseif(BUILD_TYPE STREQUAL "release")
+else()
     add_definitions(-DFANG_BUILD_RELEASE)
 
     if(MSVC)
         add_compile_options(/O2 /Oi /GL /MD)
     else()
-        add_compile_options(-O3 -s)
+        add_compile_options(-s -O3)
     endif()
 endif()
 
@@ -116,37 +124,49 @@ set_target_properties(fang PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-# Add project custom module directory
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/.cmake/module/")
+# Add custom module directory
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/.cmake/")
+find_package(CMocka REQUIRED)
 
 # Testing
-enable_testing()
-find_package(Criterion REQUIRED)
-find_program(VALGRIND "valgrind")
+if(TESTING)
+    enable_testing()
+    find_package(CMocka REQUIRED)
 
-if(VALGRIND)
-    message(STATUS "Found Valgrind: tests will run against Valgrind")
+    # Create test directory
+    set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests")
+    file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
+
+    # Run tests
+    file(GLOB_RECURSE TEST_FILES "test/*.c")
+    foreach(TEST_SOURCE ${TEST_FILES})
+        get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
+        add_executable(${TEST_NAME} ${TEST_SOURCE})
+
+        # Set includes
+        target_include_directories(${TEST_NAME} PRIVATE "src/include")
+
+        # Link to Fang and CMocka
+        target_link_libraries(${TEST_NAME} PRIVATE fang ${CMOCKA_LIBRARIES})
+
+        # Set test output directory
+        set_target_properties(${TEST_NAME} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}")
+
+        # Enable Address Sanitizer to detect memory errors
+        if(MSVC)
+            # Remove complaints about "unused parameter `void **state`" with
+            # `/wd4100` flag
+            target_compile_options(${TEST_NAME} PRIVATE /fsanitize=address)
+        else()
+            target_compile_options(${TEST_NAME} PRIVATE -fsanitize=address
+                -Wno-unused-parameter)
+            target_link_options(${TEST_NAME} PRIVATE -fsanitize=address)
+        endif()
+
+        add_test(
+            NAME ${TEST_NAME}
+            COMMAND "${TEST_OUTPUT_DIR}/${TEST_NAME}"
+        )
+    endforeach()
 endif()
-
-# Run tests
-file(GLOB_RECURSE TEST_FILES "test/*.c")
-foreach(TEST_SOURCE ${TEST_FILES})
-    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-    add_executable(${TEST_NAME} ${TEST_SOURCE})
-    target_include_directories(${TEST_NAME} PRIVATE "src/include")
-    target_link_libraries(${TEST_NAME} PRIVATE fang ${CRITERION_LIBRARIES})
-
-    if(VALGRIND)
-        add_test(
-            NAME ${TEST_NAME}
-            COMMAND ${CMAKE_COMMAND} -E env ${VALGRIND} --track-origins=yes
-            --leak-check=full --error-exitcode=1 $<TARGET_FILE:${TEST_NAME}>
-            --verbose
-        )
-    else()
-        add_test(
-            NAME ${TEST_NAME}
-            COMMAND $<TARGET_FILE:${TEST_NAME}> --verbose
-        )
-    endif()
-endforeach()

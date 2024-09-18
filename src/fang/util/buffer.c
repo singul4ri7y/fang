@@ -9,13 +9,28 @@
 #define _FANG_GROW_CAPACITY(x)    x < FANG_BUFFER_INIT_CAPACITY ?    \
     FANG_BUFFER_INIT_CAPACITY : x * 2
 
-#define _FANG_REPORT(buff, result)    \
-    if(buff == NULL) {                \
-        result = -FANG_NOMEM;         \
-        goto out;                     \
+#define _FANG_REPORT(buff, result)      \
+    if(FANG_UNLIKELY(buff == NULL)) {   \
+        result = -FANG_NOMEM;           \
+        goto out;                       \
     }
 
+#define _FANG_CHECKSTATUS(x)            \
+    if(FANG_UNLIKELY(!FANG_ISOK(x)))    \
+        goto out;
+
 /* ================ PRIVATE MACROS END ================ */
+
+
+/* ================ PRIVATE DEFINITIONS ================ */
+
+FANG_HOT static inline int _fang_buffer_check_validity(
+    fang_buffer_t *restrict buff)
+{
+    return buff->capacity == 0 ? -FANG_INVBUFF : FANG_OK;
+}
+
+/* ================ PRIVATE DEFINITIONS END ================ */
 
 
 /* ================ DEFINITIONS ================ */
@@ -26,14 +41,16 @@ int fang_buffer_create(fang_buffer_t *restrict buff,
 {
     int res = FANG_OK;
 
+    memset(buff, 0, sizeof(fang_buffer_t));
     buff->realloc = realloc;
-    buff->count = 0;
     buff->n = n;
 
     /* Initial allocation. */
-    buff->capacity = _FANG_GROW_CAPACITY(0);
-    buff->data     = realloc(NULL, buff->capacity * buff->n);
+    size_t capacity = _FANG_GROW_CAPACITY(0);
+    buff->data = realloc(NULL, capacity * buff->n);
     _FANG_REPORT(buff->data, res);
+    /* To indicate the buffer is valid. */
+    buff->capacity = capacity;
 
 out:
     return res;
@@ -41,7 +58,8 @@ out:
 
 /* Pushes a single element to the buffer. */
 int fang_buffer_add(fang_buffer_t *restrict buff, void *restrict data) {
-    int res = FANG_OK;
+    int res = _fang_buffer_check_validity(buff);
+    _FANG_CHECKSTATUS(res);
 
     /* Increase buffer capacity if need be. */
     if(FANG_LIKELY(buff->count + 1 > buff->capacity)) {
@@ -59,7 +77,8 @@ out:
 
 /* Concatenates a NULL terminated buffer. */
 int fang_buffer_concat(fang_buffer_t *restrict buff, void *data) {
-    int res = FANG_OK;
+    int res = _fang_buffer_check_validity(buff);
+    _FANG_CHECKSTATUS(res);
 
     /* Think of the buffer as a pure string buffer not taking termination
        element/character into account. */
@@ -72,7 +91,7 @@ int fang_buffer_concat(fang_buffer_t *restrict buff, void *data) {
     }
 
     /* Copy as pure string buffer. */
-    strcpy((char *) buff->data + (buff->count * buff->n), (const char *) data);
+    memcpy((char *) buff->data + (buff->count * buff->n), data, count);
     buff->count += count;
 
 out:
@@ -81,7 +100,8 @@ out:
 
 /* Pushes list of elements to the buffer. */
 int fang_buffer_append(fang_buffer_t *restrict buff, void *data, size_t count) {
-    int res = FANG_OK;
+    int res = _fang_buffer_check_validity(buff);
+    _FANG_CHECKSTATUS(res);
 
     /* Keep increasing buffer until we are OK. */
     while(FANG_LIKELY(buff->count + count > buff->capacity)) {
@@ -116,7 +136,7 @@ out:
 
 /* Retrieve buffer pointer and count from structure. */
 void *fang_buffer_retrieve(fang_buffer_t *buff, size_t *restrict count) {
-    if(count != NULL)
+    if(FANG_LIKELY(count != NULL))
         *count = buff->count;
 
     return buff->data;
@@ -132,6 +152,9 @@ void fang_buffer_shrink_to_fit(fang_buffer_t *restrict buff) {
 void fang_buffer_release(fang_buffer_t *restrict buff) {
     if(FANG_LIKELY(buff->data))
         FANG_RELEASE(buff->realloc, buff->data);
+
+    /* The buffer is invalid. */
+    buff->capacity = 0;
 }
 
 /* ================ DEFINITIONS END ================ */

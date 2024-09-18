@@ -24,15 +24,14 @@ jobs:
         - name: Install dependencies
           run: |
               sudo apt-get update
-              sudo apt-get install -y cmake ninja-build libcriterion-dev \
-                  valgrind
+              sudo apt-get install -y cmake ninja-build cmocka0 cmocka-dev
 
         - name: Create build directory
           run: mkdir build
 
         - name: Configure CMake
           working-directory: ./build
-          run: cmake -G Ninja ..
+          run: cmake -G Ninja .. -DTESTING=ON
 
         - name: Build
           working-directory: ./build

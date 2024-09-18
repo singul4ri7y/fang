@@ -17,6 +17,9 @@
 /* Could not retrieve information. */
 #define FANG_NOINFO         3
 
+/* Fang buffer is not properly created or has been freed. */
+#define FANG_INVBUFF        4
+
 /* ================ ENVIRONMENT ================ */
 
 /* No such Environment. */
