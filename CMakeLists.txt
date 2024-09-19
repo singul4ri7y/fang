@@ -128,45 +128,132 @@ set_target_properties(fang PROPERTIES
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/.cmake/")
 find_package(CMocka REQUIRED)
 
-# Testing
-if(TESTING)
-    enable_testing()
-    find_package(CMocka REQUIRED)
+# Add a testing unit
+function(add_fang_test TEST_SOURCE TEST_OUTPUT_DIR)
+    # Extract the relative path
+    file(RELATIVE_PATH REL_SOURCE_PATH ${CMAKE_SOURCE_DIR}/test ${TEST_SOURCE})
 
-    # Create test directory
-    set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests")
+    # Get filename w/o extension and directory
+    get_filename_component(TEST_NAME ${REL_SOURCE_PATH} NAME_WE)
+
+    # Get relative directory w/o filename
+    get_filename_component(TEST_DIR ${REL_SOURCE_PATH} DIRECTORY)
+
+    # Create test binary
+    add_executable(${TEST_NAME} ${TEST_SOURCE})
+
+    # Set includes
+    target_include_directories(${TEST_NAME} PRIVATE "src/include")
+
+    # Link to Fang and CMocka
+    target_link_libraries(${TEST_NAME} PRIVATE fang ${CMOCKA_LIBRARIES})
+
+    # Set test output directory
+    set_target_properties(${TEST_NAME} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}")
+
+    # Enable Address Sanitizer to detect memory errors
+    if(MSVC)
+        # Remove complaints about "unused parameter `void **state`" with
+        # `/wd4100` flag
+        target_compile_options(${TEST_NAME} PRIVATE /fsanitize=address)
+    else()
+        target_compile_options(${TEST_NAME} PRIVATE -fsanitize=address
+            -Wno-unused-parameter)
+        target_link_options(${TEST_NAME} PRIVATE -fsanitize=address)
+    endif()
+
+    add_test(
+        NAME "${TEST_DIR}/${TEST_NAME}"
+        COMMAND "${TEST_OUTPUT_DIR}/${TEST_NAME}"
+    )
+endfunction()
+
+# Check dependency for testing
+function(check_test_dependency)
+    if(NOT TEST_DEPENDENCY_CHECKED)
+        find_package(CMocka REQUIRED)
+        set(TEST_DEPENDENCY_CHECKED TRUE)
+    endif()
+endfunction()
+
+# If unit testing is desired
+if(UNIT_TESTING)
+    enable_testing()
+    check_test_dependency()
+
+    # Create directory
+    set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests/unit")
     file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
 
-    # Run tests
-    file(GLOB_RECURSE TEST_FILES "test/*.c")
+    # Unit test files
+    set(TEST_FILES memory.c util/buffer.c)
+
     foreach(TEST_SOURCE ${TEST_FILES})
-        get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-        add_executable(${TEST_NAME} ${TEST_SOURCE})
-
-        # Set includes
-        target_include_directories(${TEST_NAME} PRIVATE "src/include")
-
-        # Link to Fang and CMocka
-        target_link_libraries(${TEST_NAME} PRIVATE fang ${CMOCKA_LIBRARIES})
-
-        # Set test output directory
-        set_target_properties(${TEST_NAME} PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}")
-
-        # Enable Address Sanitizer to detect memory errors
-        if(MSVC)
-            # Remove complaints about "unused parameter `void **state`" with
-            # `/wd4100` flag
-            target_compile_options(${TEST_NAME} PRIVATE /fsanitize=address)
-        else()
-            target_compile_options(${TEST_NAME} PRIVATE -fsanitize=address
-                -Wno-unused-parameter)
-            target_link_options(${TEST_NAME} PRIVATE -fsanitize=address)
-        endif()
-
-        add_test(
-            NAME ${TEST_NAME}
-            COMMAND "${TEST_OUTPUT_DIR}/${TEST_NAME}"
-        )
+        message(STATUS "${CMAKE_SOURCE_DIR}/test/unit/${TEST_SOURCE}")
+        add_fang_test("${CMAKE_SOURCE_DIR}/test/unit/${TEST_SOURCE}"
+            ${TEST_OUTPUT_DIR})
     endforeach()
 endif()
+
+# If full testing is desired
+if(FULL_TESTING)
+    enable_testing()
+    check_test_dependency()
+
+    # Create directory
+    set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests/full")
+    file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
+
+    # Unit test files
+    set(TEST_FILES)
+
+    foreach(TEST_SOURCE ${TEST_FILES})
+        message(STATUS "${CMAKE_SOURCE_DIR}/test/full/${TEST_SOURCE}")
+        add_fang_test("${CMAKE_SOURCE_DIR}/test/full/${TEST_SOURCE}"
+            ${TEST_OUTPUT_DIR})
+    endforeach()
+endif()
+
+# Testing
+# if(TESTING)
+#     enable_testing()
+#     find_package(CMocka REQUIRED)
+#
+#     # Create test directory
+#     set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests")
+#     file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
+#
+#     # Run tests
+#     file(GLOB_RECURSE TEST_FILES "test/*.c")
+#     foreach(TEST_SOURCE ${TEST_FILES})
+#         get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
+#         add_executable(${TEST_NAME} ${TEST_SOURCE})
+#
+#         # Set includes
+#         target_include_directories(${TEST_NAME} PRIVATE "src/include")
+#
+#         # Link to Fang and CMocka
+#         target_link_libraries(${TEST_NAME} PRIVATE fang ${CMOCKA_LIBRARIES})
+#
+#         # Set test output directory
+#         set_target_properties(${TEST_NAME} PROPERTIES
+#             RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}")
+#
+#         # Enable Address Sanitizer to detect memory errors
+#         if(MSVC)
+#             # Remove complaints about "unused parameter `void **state`" with
+#             # `/wd4100` flag
+#             target_compile_options(${TEST_NAME} PRIVATE /fsanitize=address)
+#         else()
+#             target_compile_options(${TEST_NAME} PRIVATE -fsanitize=address
+#                 -Wno-unused-parameter)
+#             target_link_options(${TEST_NAME} PRIVATE -fsanitize=address)
+#         endif()
+#
+#         add_test(
+#             NAME ${TEST_NAME}
+#             COMMAND "${TEST_OUTPUT_DIR}/${TEST_NAME}"
+#         )
+#     endforeach()
+# endif()

@@ -8,6 +8,7 @@
  * Cache lines are generally 64 bytes and fetched from address aligned in 64
  * bytes boundrary. Also, Fang uses AVX512 SIMD which requires 64 byte aligned
  * memory. */
+/* Should be 2^n. */
 #define FANG_MEMALIGN    64
 
 /* Maximum Environments we can use. */
