@@ -190,7 +190,6 @@ if(UNIT_TESTING)
     set(TEST_FILES memory.c util/buffer.c)
 
     foreach(TEST_SOURCE ${TEST_FILES})
-        message(STATUS "${CMAKE_SOURCE_DIR}/test/unit/${TEST_SOURCE}")
         add_fang_test("${CMAKE_SOURCE_DIR}/test/unit/${TEST_SOURCE}"
             ${TEST_OUTPUT_DIR})
     endforeach()
@@ -209,51 +208,7 @@ if(FULL_TESTING)
     set(TEST_FILES)
 
     foreach(TEST_SOURCE ${TEST_FILES})
-        message(STATUS "${CMAKE_SOURCE_DIR}/test/full/${TEST_SOURCE}")
         add_fang_test("${CMAKE_SOURCE_DIR}/test/full/${TEST_SOURCE}"
             ${TEST_OUTPUT_DIR})
     endforeach()
 endif()
-
-# Testing
-# if(TESTING)
-#     enable_testing()
-#     find_package(CMocka REQUIRED)
-#
-#     # Create test directory
-#     set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests")
-#     file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
-#
-#     # Run tests
-#     file(GLOB_RECURSE TEST_FILES "test/*.c")
-#     foreach(TEST_SOURCE ${TEST_FILES})
-#         get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-#         add_executable(${TEST_NAME} ${TEST_SOURCE})
-#
-#         # Set includes
-#         target_include_directories(${TEST_NAME} PRIVATE "src/include")
-#
-#         # Link to Fang and CMocka
-#         target_link_libraries(${TEST_NAME} PRIVATE fang ${CMOCKA_LIBRARIES})
-#
-#         # Set test output directory
-#         set_target_properties(${TEST_NAME} PROPERTIES
-#             RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}")
-#
-#         # Enable Address Sanitizer to detect memory errors
-#         if(MSVC)
-#             # Remove complaints about "unused parameter `void **state`" with
-#             # `/wd4100` flag
-#             target_compile_options(${TEST_NAME} PRIVATE /fsanitize=address)
-#         else()
-#             target_compile_options(${TEST_NAME} PRIVATE -fsanitize=address
-#                 -Wno-unused-parameter)
-#             target_link_options(${TEST_NAME} PRIVATE -fsanitize=address)
-#         endif()
-#
-#         add_test(
-#             NAME ${TEST_NAME}
-#             COMMAND "${TEST_OUTPUT_DIR}/${TEST_NAME}"
-#         )
-#     endforeach()
-# endif()

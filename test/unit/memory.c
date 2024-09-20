@@ -34,6 +34,9 @@ void fang_default_reallocator_test(void **state) {
     mem = _fang_default_reallocator(mem, 32 * sizeof(int));
     assert_non_null(mem);
 
+    /* Address should be aligned. */
+    assert_false((uintptr_t) mem % FANG_MEMALIGN);
+
     /* Memory should stay uncorrupted after shrink. */
     assert_int_equal(memcmp(mem, data, 32 * sizeof(int)), 0);
 
