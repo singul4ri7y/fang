@@ -29,10 +29,11 @@ typedef struct fang_ten {
     /* The number of dimensions. */
     uint16_t ndims;
 
-    /* What type of data we are dealing with? */
+    /* Type of data tensor is holding. */
     fang_ten_dtype_t dtyp;
 
-    /* Here we store both dimension and stride at once. */
+    /* The dimension and stride is stored simultaneously, where individual
+       dimension can be retrieved through a single division operation. */
     /* Let's call it "stridemension" B). */
     uint32_t *sdims;
 

@@ -63,7 +63,7 @@ int fang_buffer_concat(fang_buffer_t *restrict buff, void *data) {
     /* Think of the buffer as a pure string buffer not taking termination
        element/character into account. */
     int count = strlen((const char *) data);
-    /* Keep increasing buffer until we are OK. */
+    /* Keep increasing buffer until it's OK. */
     while(FANG_LIKELY(buff->count + count > buff->capacity)) {
         buff->capacity = _FANG_GROW_CAPACITY(buff->capacity);
         buff->data     = buff->realloc(buff->data, buff->capacity * buff->n);
@@ -82,7 +82,7 @@ out:
 int fang_buffer_append(fang_buffer_t *restrict buff, void *data, size_t count) {
     int res = FANG_OK;
 
-    /* Keep increasing buffer until we are OK. */
+    /* Keep increasing buffer until it's OK. */
     while(FANG_LIKELY(buff->count + count > buff->capacity)) {
         buff->capacity = _FANG_GROW_CAPACITY(buff->capacity);
         buff->data     = buff->realloc(buff->data, buff->capacity * buff->n);

@@ -11,7 +11,7 @@
 /* Should be 2^n. */
 #define FANG_MEMALIGN    64
 
-/* Maximum Environments we can use. */
+/* Maximum Environments can be used. */
 #define FANG_MAX_ENV     128
 
 /* ================ CONFIGURATION MACROS END ================ */
