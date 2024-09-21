@@ -54,8 +54,17 @@ typedef struct fang_env {
 FANG_API int fang_env_create(fang_env_type_t type, fang_reallocator_t realloc);
 
 /* Releases an Environment if not released. */
-FANG_API int fang_env_release(int env_id);
+FANG_API int fang_env_release(int eid);
 
 /* ================ DECLARATIONS END ================ */
+
+
+/* ================ PRIVATE DECLARATIONS ================ */
+
+/* Retrieve the Environment structure referenced by the ID from Environment
+   pool. REFRAIN FROM USING THIS FUNCTION UNLESS ABSOLUTELY ESSENTIAL. */
+FANG_API int _fang_env_retrieve(fang_env_t **restrict env, int eid);
+
+/* ================ PRIVATE DECLARATIONS END ================ */
 
 #endif  // FANG_ENV_H

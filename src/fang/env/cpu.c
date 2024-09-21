@@ -1,5 +1,4 @@
 #include <fang/status.h>
-#include <env/cpu.h>
 #include <platform/env/cpu.h>
 
 /* ================ PRIVATE GLOBALS ================ */
@@ -10,24 +9,6 @@ static fang_env_ops_t _cpu_ops = {
 };
 
 /* ================ PRIVATE GLOBALS END ================ */
-
-
-/* ================ PRIVATE DATA STRUCTURES ================ */
-
-/* Holds CPU exclusive data. */
-typedef struct _fang_env_cpu {
-    /* Private structure inheritance. */
-    fang_env_private_t private;
-
-    /* Physical CPUs. */
-    _fang_cpu_t *cpu;
-    int ncpu;
-
-    /* Number of active physical CPUs. */
-    int ncact;
-} _fang_env_cpu_t;
-
-/* ================ PRIVATE DATA STRUCTURES END ================ */
 
 
 /* ================ PRIVATE DEFINITIONS ================ */

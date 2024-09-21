@@ -108,10 +108,7 @@ list(APPEND SOURCE_FILES ${PLATFORM_SOURCE_FILES})
 add_library(fang SHARED ${SOURCE_FILES})
 
 # Includes
-target_include_directories(fang PRIVATE
-    "src/include"
-    "src/include/platform/${PLATFORM}/"
-)
+target_include_directories(fang PRIVATE "src/include")
 
 # Set version
 target_compile_definitions(fang PRIVATE
@@ -187,7 +184,7 @@ if(UNIT_TESTING)
     file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
 
     # Unit test files
-    set(TEST_FILES memory.c util/buffer.c)
+    set(TEST_FILES memory.c util/buffer.c environment.c)
 
     foreach(TEST_SOURCE ${TEST_FILES})
         add_fang_test("${CMAKE_SOURCE_DIR}/test/unit/${TEST_SOURCE}"

@@ -10,9 +10,9 @@ name: Build and Test Fang
 
 on:
     push:
-        branches: '*'
+        branches: [ main ]
     pull_request:
-        branches: '*'
+        branches: [ main ]
 
 jobs:
     build-n-test:

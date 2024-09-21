@@ -65,17 +65,12 @@ out:
 }
 
 /* Releases an Environment if not released. */
-int fang_env_release(int env_id) {
+int fang_env_release(int eid) {
     int res = FANG_OK;
 
-    if(env_id >= FANG_MAX_ENV) {
-        res = -FANG_INVID;
-        goto out;
-    }
-
-    fang_env_t *env = _s_envs + env_id;
-    /* Nothing to be done if the Environment is already freed. */
-    if(env->type == FANG_ENV_TYPE_INVALID)
+    /* Is Environment valid? */
+    fang_env_t *env;
+    if(!FANG_ISOK(res = _fang_env_retrieve(&env, eid)))
         goto out;
 
     /* Environments cannot be released if tensors using it. */
@@ -92,4 +87,31 @@ out:
 }
 
 /* ================ DEFINITIONS END ================ */
+
+
+/* ================ PRIVATE DEFINITIONS ================ */
+
+/* Retrieve the Environment structure referenced by the ID from Environment
+   pool. REFRAIN FROM USING THIS FUNCTION UNLESS ABSOLUTELY ESSENTIAL. */
+int _fang_env_retrieve(fang_env_t **restrict env, int eid) {
+    int res = FANG_OK;
+
+    if(eid >= FANG_MAX_ENV) {
+        res = -FANG_INVID;
+        goto out;
+    }
+
+    /* Such environment exists? */
+    if(_s_envs[eid].type == FANG_ENV_TYPE_INVALID) {
+        res = -FANG_NOENV;
+        goto out;
+    }
+
+    *env = _s_envs + eid;
+
+out:
+    return res;
+}
+
+/* ================ PRIVATE DEFINITIONS END ================ */
 
