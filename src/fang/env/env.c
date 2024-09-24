@@ -1,5 +1,5 @@
 #include <fang/status.h>
-#include <env/cpu.h>
+#include <env/cpu/cpu.h>
 #include <string.h>
 
 /* ================ PRIVATE ================ */
@@ -96,18 +96,19 @@ out:
 int _fang_env_retrieve(fang_env_t **restrict env, int eid) {
     int res = FANG_OK;
 
-    if(eid >= FANG_MAX_ENV) {
+    if(FANG_UNLIKELY(eid >= FANG_MAX_ENV)) {
         res = -FANG_INVID;
         goto out;
     }
 
     /* Such environment exists? */
-    if(_s_envs[eid].type == FANG_ENV_TYPE_INVALID) {
+    if(FANG_UNLIKELY(_s_envs[eid].type == FANG_ENV_TYPE_INVALID)) {
         res = -FANG_NOENV;
         goto out;
     }
 
-    *env = _s_envs + eid;
+    if(env != NULL)
+        *env = _s_envs + eid;
 
 out:
     return res;

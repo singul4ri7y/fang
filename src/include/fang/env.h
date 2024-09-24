@@ -4,6 +4,7 @@
 #include <fang/config.h>
 #include <fang/tensor.h>
 #include <memory.h>
+#include <compiler.h>
 #include <stdatomic.h>
 
 /* ================ DATA STRUCTURES ================ */
@@ -63,7 +64,7 @@ FANG_API int fang_env_release(int eid);
 
 /* Retrieve the Environment structure referenced by the ID from Environment
    pool. REFRAIN FROM USING THIS FUNCTION UNLESS ABSOLUTELY ESSENTIAL. */
-FANG_API int _fang_env_retrieve(fang_env_t **restrict env, int eid);
+FANG_API FANG_HOT int _fang_env_retrieve(fang_env_t **restrict env, int eid);
 
 /* ================ PRIVATE DECLARATIONS END ================ */
 

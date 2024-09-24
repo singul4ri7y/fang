@@ -8,11 +8,11 @@
 #define FANG_LIKELY(x)      __builtin_expect(!!(x), 1)
 #define FANG_UNLIKELY(x)    __builtin_expect(!!(x), 0)
 
-/* For optimizing hot/cold code section and routines (functions). */
+/* For optimizing hot/cold code sections and routines (functions). */
 #define FANG_HOT            __attribute__((hot))
 #define FANG_COLD           __attribute__((cold))
 
-/* Inline every function call reducing overhead. */
+/* Inline every function call, reducing overhead. */
 #define FANG_FLATTEN        __attribute__((flatten))
 
 /* To be used with reallocator functions. */
