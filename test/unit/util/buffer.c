@@ -116,7 +116,7 @@ static void fang_buffer_concat_test(void **state) {
 }
 
 /* Appending elements to buffer test. */
-void fang_buffer_append_test(void **state) {
+static void fang_buffer_append_test(void **state) {
     fang_buffer_t buff;
     FANG_BUFFER_CREATE(&buff, _fang_default_reallocator, int);
 
@@ -156,7 +156,7 @@ void fang_buffer_append_test(void **state) {
 }
 
 /* Getting element from buffer test. */
-void fang_buffer_get_test(void **state) {
+static void fang_buffer_get_test(void **state) {
     fang_buffer_t buff;
     FANG_BUFFER_CREATE(&buff, _fang_default_reallocator, float);
 
@@ -184,7 +184,7 @@ void fang_buffer_get_test(void **state) {
 }
 
 /* Buffer data and size retrieve test. */
-void fang_buffer_retrieve_test(void **state) {
+static void fang_buffer_retrieve_test(void **state) {
     fang_buffer_t buff;
     FANG_BUFFER_CREATE(&buff, _fang_default_reallocator, int);
 
@@ -205,7 +205,7 @@ void fang_buffer_retrieve_test(void **state) {
 }
 
 /* Buffer shrink test. */
-void fang_buffer_shrink_to_fit_test(void **state) {
+static void fang_buffer_shrink_to_fit_test(void **state) {
     fang_buffer_t buff;
     FANG_BUFFER_CREATE(&buff, _fang_default_reallocator, int);
 
@@ -239,5 +239,5 @@ int main() {
         cmocka_unit_test(fang_buffer_shrink_to_fit_test)
     };
 
-    return cmocka_run_group_tests_name("fang_buffer", tests, NULL, NULL);
+    return cmocka_run_group_tests_name("buffer", tests, NULL, NULL);
 }

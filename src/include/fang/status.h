@@ -46,9 +46,6 @@
 /* Invalid tensor data type. */
 #define FANG_INVDTYP        204
 
-/* No half-precision or quarter-precision floating point support. */
-#define FANG_NOHFLOAT       205
-
 /* ================ TENSOR END ================ */
 
 #endif  // FANG_STATUS_H

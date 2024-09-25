@@ -1,11 +1,8 @@
 #include <fang/status.h>
 #include <fang/tensor.h>
+#include <env/cpu/float.h>
 #include <platform/env/cpu.h>
-
-/* Include SIMD headers if available. */
-#if defined(FANG_USE_AVX512) || defined(FANG_USE_AVX2)
-#include <immintrin.h>
-#endif  // FANG_USE_AVX512 and FANG_USE_AVX2
+#include <string.h>
 
 /* ================ FORWARD DECLARATIONS ================ */
 
@@ -18,13 +15,13 @@ FANG_HOT FANG_FLATTEN int
 
 /* ================ PRIVATE GLOBALS ================ */
 
-static const fang_ten_ops_t _dense = {
-    .create = _fang_env_cpu_create
+static fang_ten_ops_t _dense = {
+    .create = _fang_env_cpu_ops_create
 };
 
 /* Tensor operators for CPU Environment. */
-static const fang_env_ops_t _cpu_ops = {
-    .dense  = _dense,
+static fang_env_ops_t _cpu_ops = {
+    .dense  = &_dense,
     .sparse = NULL
 };
 
@@ -82,26 +79,19 @@ out:
 
 /* ================ CPU OPERATORS ================ */
 
+/* Private macro of `_fang_env_cpu_ops_create`. */
+#define _DATACPY(ltype, rtype)                                         \
+for(size_t i = 0; i < size; i++)                                       \
+    ((ltype *) ten->data.dense)[i] = (ltype) ((rtype *) arg->y)[i];
+
 /* Creates and initializes tensor data. */
-#define _DATACPY(ltype, rtype)                                   \
-for(size_t i = 0; i < size; i++)                                \
-    ((ltype *) *dest)[i] = (itype) ((rtype *) arg->data)[i];
-int _fang_env_cpu_ops_create(fang_ten_ops_arg_t *restrict arg) {
+FANG_HOT FANG_FLATTEN int
+    _fang_env_cpu_ops_create(fang_ten_ops_arg_t *restrict arg)
+{
     int res = FANG_OK;
 
     /* The tensor to work with. */
     fang_ten_t *ten = (fang_ten_t *) arg->dest;
-
-#if !defined(FANG_USE_AVX512) && !defined(FANG_USE_AVX2)
-    /* For CPU Environment, half-precision and quarter-precision is only
-       supported when SIMD is enabled. */
-    if(ten->dtyp == FANG_TEN_DTYPE_FLOAT8 ||
-       ten->dtyp == FANG_TEN_DTYPE_FLOAT16)
-    {
-        res = -FANG_NOHFLOAT;
-        goto out;
-    }
-#endif  // !FANG_USE_AVX512 and !FANG_USE_AVX2
 
     /* There is a very good chance the Environment structure would be valid. */
     fang_env_t *env;
@@ -111,7 +101,7 @@ int _fang_env_cpu_ops_create(fang_ten_ops_arg_t *restrict arg) {
     size_t size = (size_t) FANG_G2U(arg->x) * dsiz[(int) ten->dtyp % ndsiz];
 
     /* Allocate memory to store tensor data. */
-    ten->data.dense = (fang_gen) FANG_CREATE(env->realloc, size);
+    ten->data.dense = (fang_gen) FANG_CREATE(env->realloc, char, size);
 
     if(FANG_UNLIKELY(ten->data.dense == NULL)) {
         res = -FANG_NOMEM;
@@ -155,15 +145,34 @@ int _fang_env_cpu_ops_create(fang_ten_ops_arg_t *restrict arg) {
                 _DATACPY(uint64_t, fang_uint);
             } break;
 
-#ifdef FANG_USE_AVX512
             case FANG_TEN_DTYPE_FLOAT8: {
-                _DATACPY(
+                for(size_t i = 0; i < size; i++) {
+                    ((_fang_float8_t *) ten->data.dense)[i] =
+                        _FANG_S2Q((float) ((fang_float *) arg->y)[i]);
+                }
             } break;
 
-            case FANG_TEN_DTYPE_FLOAT16,
-#endif  // FANG_USE_AVX512 or FANG_USE_AVX2
-            case FANG_TEN_DTYPE_FLOAT32,
-            case FANG_TEN_DTYPE_FLOAT64
+            case FANG_TEN_DTYPE_FLOAT16: {
+                for(size_t i = 0; i < size; i++) {
+                    ((_fang_float16_t *) ten->data.dense)[i] =
+                        _FANG_S2H((float) ((fang_float *) arg->y)[i]);
+                }
+            } break;
+
+            case FANG_TEN_DTYPE_BFLOAT16: {
+                for(size_t i = 0; i < size; i++) {
+                    ((_fang_bfloat16_t *) ten->data.dense)[i] =
+                        _FANG_S2BH((float) ((fang_float *) arg->y)[i]);
+                }
+            } break;
+
+            case FANG_TEN_DTYPE_FLOAT32: {
+                _DATACPY(float, fang_float);
+            } break;
+
+            case FANG_TEN_DTYPE_FLOAT64: {
+                _DATACPY(double, fang_float);
+            } break;
         }
     }
 

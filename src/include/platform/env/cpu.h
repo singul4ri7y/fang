@@ -1,7 +1,7 @@
 #ifndef FANG_LINUX_CPU_H
 #define FANG_LINUX_CPU_H
 
-#include <env/cpu.h>
+#include <env/cpu/cpu.h>
 #include <memory.h>
 
 /* ================ DECLARATIONS ================ */

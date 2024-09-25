@@ -1,5 +1,5 @@
 #include <fang/status.h>
-#include <env/cpu.h>
+#include <env/cpu/cpu.h>
 #include <memory.h>
 #include <stdarg.h>
 #include <setjmp.h>
