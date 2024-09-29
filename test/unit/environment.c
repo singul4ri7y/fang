@@ -74,9 +74,6 @@ static void fang_env_cpu_test(void **state) {
     assert_non_null(cpu_private->cpu);
     assert_int_not_equal(cpu_private->ncpu, 0);
 
-    /* All physical CPU(s) should be active at first. */
-    assert_int_equal(cpu_private->ncpu, cpu_private->ncact);
-
     /* All physical CPU information should be properly set. */
     _fang_cpu_t *cpu = cpu_private->cpu;
     int sproc = 0;  // To match processor stride calculations
@@ -91,6 +88,12 @@ static void fang_env_cpu_test(void **state) {
         sproc += cpu[i].nproc;
     }
 
+    /* All processors should be active at first. */
+    int ncact = sproc;  // Total processors active
+    assert_int_equal(cpu_private->ncact, ncact);
+
+    // TODO: Test CPU Environment control functions
+
     fang_env_release(eid);
 }
 
@@ -101,5 +104,5 @@ int main() {
         cmocka_unit_test(fang_env_cpu_test)
     };
 
-    return cmocka_run_group_tests_name("environment", tests, NULL, NULL);
+    return cmocka_run_group_tests_name("unit/environment", tests, NULL, NULL);
 }

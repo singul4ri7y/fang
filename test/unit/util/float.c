@@ -13,8 +13,9 @@ assert_float_equal(f, _FANG_Q2S(_FANG_S2Q(f)), 1e-6)
 #define ASSERT_FLOAT16(f)        \
 assert_float_equal(f, _FANG_H2S(_FANG_S2H(f)), 1e-6)
 
-#define ASSERT_OVERFLOW(x, y)    \
-assert_int_equal(*(uint32_t *) &x, *(uint32_t *) &y)
+#define ASSERT_OVERFLOW(x, y)                                      \
+{ _fang_float_bitcast_t _ux = { .f32 = x }, _uy = { .f32 = y };    \
+assert_int_equal(_ux.u32, _uy.u32); }
 
 /* ================ HELPER MACROS END ================ */
 
@@ -146,5 +147,5 @@ int main() {
         cmocka_unit_test(fang_float16_test)
     };
 
-    return cmocka_run_group_tests_name("float", tests, NULL, NULL);
+    return cmocka_run_group_tests_name("unit/util/float", tests, NULL, NULL);
 }

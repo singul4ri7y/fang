@@ -239,5 +239,5 @@ int main() {
         cmocka_unit_test(fang_buffer_shrink_to_fit_test)
     };
 
-    return cmocka_run_group_tests_name("buffer", tests, NULL, NULL);
+    return cmocka_run_group_tests_name("unit/util/buffer", tests, NULL, NULL);
 }

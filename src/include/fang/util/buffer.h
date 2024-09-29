@@ -12,7 +12,7 @@
 
 /* Helper macro to create buffer of specific type. */
 #define FANG_BUFFER_CREATE(buff, realloc, type)    fang_buffer_create(buff,    \
-    realloc, sizeof(type));
+    realloc, sizeof(type))
 
 /* Get an element from buffer. */
 #define FANG_BUFFER_GET(buff, type, index)         (type *) fang_buffer_get(   \

@@ -184,7 +184,8 @@ if(UNIT_TESTING)
     file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
 
     # Unit test files
-    set(TEST_FILES memory.c util/buffer.c util/float.c environment.c)
+    set(TEST_FILES memory.c util/buffer.c util/float.c environment.c
+        tensor/dense.c)
 
     foreach(TEST_SOURCE ${TEST_FILES})
         add_fang_test("${CMAKE_SOURCE_DIR}/test/unit/${TEST_SOURCE}"

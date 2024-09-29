@@ -18,6 +18,12 @@
 /* To be used with reallocator functions. */
 #define FANG_MALLOC         __attribute__((malloc))
 
+/* Suppress unused parameter. */
+#define FANG_UNUSED         __attribute__((unused))
+
+/* Inform compiler the function does not return. */
+#define FANG_NORET         __attribute__((noret))
+
 #else  // __GNUC__ or __clang__
 #define FANG_LIKELY(x)       x
 #define FANG_UNLIKELY(x)    !x
@@ -28,6 +34,8 @@
 #define FANG_FLATTEN
 
 #define FANG_MALLOC
+
+#define FANG_UNUSED
 #endif // __GNUC__ or __clang__
 
 /* ================ COMPILER OPTIMIZATION MACROS END ================ */

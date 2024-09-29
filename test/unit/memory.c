@@ -48,5 +48,5 @@ int main() {
         cmocka_unit_test(fang_default_reallocator_test)
     };
 
-    return cmocka_run_group_tests_name("memory", tests, NULL, NULL);
+    return cmocka_run_group_tests_name("unit/memory", tests, NULL, NULL);
 }

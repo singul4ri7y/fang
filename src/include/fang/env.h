@@ -29,7 +29,7 @@ typedef struct fang_env_ops_t {
 } fang_env_ops_t;
 
 /* Structure of a single Environment. */
-typedef struct fang_env {
+struct fang_env {
     /* Type of Environment. */
     fang_env_type_t type;
 
@@ -44,7 +44,7 @@ typedef struct fang_env {
 
     /* Tensor operators for this Environment. */
     fang_env_ops_t *ops;
-} fang_env_t;
+};
 
 /* ================ DATA STRUCTURES END ================ */
 
@@ -53,6 +53,10 @@ typedef struct fang_env {
 
 /* Creates an Environment and returns the ID. */
 FANG_API int fang_env_create(fang_env_type_t type, fang_reallocator_t realloc);
+
+/* Controls number of active processors in a physical CPU. */
+/* NOTE: Setting `nact` to 0 would active all the processors (cores). */
+FANG_API int fang_env_cpu_actproc(int eid, int pcpu, int nact);
 
 /* Releases an Environment if not released. */
 FANG_API int fang_env_release(int eid);

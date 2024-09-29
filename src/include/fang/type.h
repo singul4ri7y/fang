@@ -51,8 +51,8 @@ typedef void *fang_gen;
 /* Ugly; stay happy and live a long life. */
 #define _FANG_TYPE_DEF(postfix, ityp, otyp)                               \
 FANG_HOT static inline fang_##otyp fang_##postfix(fang_##ityp value) {    \
-    fang_##otyp *res = (fang_##otyp *) &value;                            \
-    return *res;                                                          \
+    union { fang_##ityp i; fang_##otyp o; } _u = { .i = value };          \
+    return _u.o;                                                          \
 }
 
 /* Converts float to generic data. */
