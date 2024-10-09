@@ -14,16 +14,22 @@ else()
     message(FATAL_ERROR "BUILD_TYPE unrecognized, available: debug, release")
 endif()
 
+# Microarchitecture
+if(NOT MARCH)
+    set(MARCH native CACHE STRING "Microarchitecture type")
+endif()
+
 # Set C standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Compiler warnings
 if(MSVC)
-    add_compile_options(/W4 /WX)
+    add_compile_options(/W4 /WX -openmp)
 else()
-    add_compile_options(-pedantic -Wall -Wextra -Wformat-security -Wundef
-        -Wuninitialized -Wunused)
+    add_compile_options(-pedantic -fopenmp -march=${MARCH} -mtune=intel -Wall
+        -Wextra -Wformat-security -Wundef -Wuninitialized -Wunused)
+    add_link_options(-fopenmp)
 endif()
 
 # Build type specific flags
@@ -71,23 +77,22 @@ check_c_source_runs("
 " HAVE_AVX512)
 
 # Fallback to AVX2 if AVX512 is not available
-if(NOT HAVE_AVX512)
-    check_c_source_runs("
-        #include <immintrin.h>
-        int main() {
-            __m256 a = _mm256_set1_ps(1.0f);
-            __m256 b = _mm256_set1_ps(2.0f);
-            __m256 c = _mm256_add_ps(a, b);
-            return 0;
-        }
-    " HAVE_AVX2)
-endif()
+check_c_source_runs("
+    #include <immintrin.h>
+    int main() {
+        __m256 a = _mm256_set1_ps(1.0f);
+        __m256 b = _mm256_set1_ps(2.0f);
+        __m256 c = _mm256_add_ps(a, b);
+        return 0;
+    }
+" HAVE_AVX2)
 
-if(HAVE_AVX512)
+if(HAVE_AVX512 AND NOT NO_SIMD)
     add_compile_options(-mavx512f)
     add_definitions(-DFANG_USE_AVX512)
     message(STATUS "AVX512 support enabled")
-elseif(HAVE_AVX2)
+endif()
+if(HAVE_AVX2 AND NOT NO_SIMD)
     add_compile_options(-mavx2)
     add_definitions(-DFANG_USE_AVX2)
     message(STATUS "AVX2 support enabled")
@@ -104,7 +109,7 @@ list(FILTER SOURCE_FILES EXCLUDE REGEX "src/fang/platform/.*\\.c$")
 file(GLOB_RECURSE PLATFORM_SOURCE_FILES "src/fang/platform/${PLATFORM}/*.c")
 list(APPEND SOURCE_FILES ${PLATFORM_SOURCE_FILES})
 
-# Create the library
+# Fang is a shared library by default
 add_library(fang SHARED ${SOURCE_FILES})
 
 # Includes

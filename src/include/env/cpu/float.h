@@ -51,7 +51,9 @@ typedef union _fang_float_bitcast {
 
 /* Convert 32-bit IEEE-754 single-precision float to 16-bit 1.5.10
    half-precisoin IEEE-754 float. */
-FANG_HOT static inline _fang_float16_t _fang_float32_to_float16(float f) {
+FANG_HOT FANG_INLINE static inline
+    _fang_float16_t _fang_float32_to_float16(float f)
+{
     uint32_t bits;
     { _fang_float_bitcast_t _u = { .f32 = f }; bits = _u.u32; }
 
@@ -96,7 +98,9 @@ FANG_HOT static inline _fang_float16_t _fang_float32_to_float16(float f) {
 
 /* Convert 16-bit 1.5.10 IEEE-754 half-precision float to IEEE-754
    32-bit single-precision float. */
-FANG_HOT static inline float _fang_float16_to_float32(_fang_float16_t f) {
+FANG_HOT FANG_INLINE static inline float
+    _fang_float16_to_float32(_fang_float16_t f)
+{
     /* Sign; can be represented as positive/negative zero as 32-bit float. */
     uint32_t sign = (f & 0x8000) << 16;
     int32_t  exp  = (f >> 10) & 0x1F;  // 5-bit exponent
@@ -137,7 +141,9 @@ FANG_HOT static inline float _fang_float16_to_float32(_fang_float16_t f) {
 
 /* Convert 32-bit IEEE-754 single-precision float to 16-bit 1.8.7
    half-precision Brain float. */
-FANG_HOT static inline _fang_bfloat16_t _fang_float32_to_bfloat16(float f) {
+FANG_HOT FANG_INLINE static inline
+    _fang_bfloat16_t _fang_float32_to_bfloat16(float f)
+{
     uint32_t bits;
     { _fang_float_bitcast_t _u = { .f32 = f }; bits = _u.u32; }
     return (_fang_bfloat16_t) (bits >> 16) & 0xFFFF;  // Shrink mantissa
@@ -145,7 +151,9 @@ FANG_HOT static inline _fang_bfloat16_t _fang_float32_to_bfloat16(float f) {
 
 /* Converts 16-bit half-precision 1.8.7 Brain float to 32-bit IEEE-754
    single-precision float. */
-FANG_HOT static inline float _fang_bfloat16_to_float32(_fang_bfloat16_t f) {
+FANG_HOT FANG_INLINE static inline float
+    _fang_bfloat16_to_float32(_fang_bfloat16_t f)
+{
     uint32_t bits = (uint32_t) f << 16;
     _fang_float_bitcast_t _u = { .u32 = bits };
     return _u.f32;
@@ -153,7 +161,9 @@ FANG_HOT static inline float _fang_bfloat16_to_float32(_fang_bfloat16_t f) {
 
 /* Convert 32-bit IEEE-754 single-precision float to 8-bit 1.4.3
    quarter-precision IEEE-754 compatible float. */
-FANG_HOT static inline _fang_float8_t _fang_float32_to_float8(float f) {
+FANG_HOT FANG_INLINE static inline _fang_float8_t
+    _fang_float32_to_float8(float f)
+{
     uint32_t bits;
     { _fang_float_bitcast_t _u = { .f32 = f }; bits = _u.u32; }
 
@@ -198,7 +208,9 @@ FANG_HOT static inline _fang_float8_t _fang_float32_to_float8(float f) {
 
 /* Convert 8-bit 1.4.3 IEEE-754 compatible quarter-precision float to IEEE-754
    32-bit single-precision float. */
-FANG_HOT static inline float _fang_float8_to_float32(_fang_float8_t f) {
+FANG_HOT FANG_INLINE static inline float
+    _fang_float8_to_float32(_fang_float8_t f)
+{
     /* Sign; can be represented as positive/negative zero as 32-bit float. */
     uint32_t sign = (f & 0x80) << 24;
     int32_t  exp  = (f >> 3) & 0x0F;  // 4-bit exponent

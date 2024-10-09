@@ -35,6 +35,9 @@
 /* Invalid processor count. */
 #define FANG_INVPCOUNT      104
 
+/* Environment mismatch. Tensors do not belong to same Environment. */
+#define FANG_ENVMISMATCH    105
+
 /* ================ ENVIRONMENT END ================ */
 
 
@@ -61,6 +64,12 @@
 /* Difference overflow in tensor randomizer. Try reducing the range between low
    and high values. */
 #define FANG_RANDOF         207
+
+/* Destination tensor dimension mismatch. */
+#define FANG_DESTINVDIM     208
+
+/* Tensors not broadcastable. */
+#define FANG_NOBROAD        209
 
 /* ================ TENSOR END ================ */
 

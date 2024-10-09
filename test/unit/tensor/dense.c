@@ -99,16 +99,15 @@ void fang_ten_create_test(void **state) {
     /* Dimension count should match. */
     assert_int_equal(ten.ndims, _ARR_SIZ(dims));
 
-    /* Stridemension check. */
-    assert_int_equal(ten.sdims[ten.ndims - 1], dims[0]);
-    for(int i = 1; i < ten.ndims; i++) {
-        uint32_t dim;
-        if(i + 1 == ten.ndims)  // Final dimension
-            dim = ten.sdims[i - 1];
-        else dim = ten.sdims[i - 1] / ten.sdims[i];
+    /* Dimension and strides check. */
+    uint32_t stride = 1;
+    for(int i = 0; i < ten.ndims; i++) {
+        /* Dimension should match. */
+        assert_int_equal(ten.dims[i], dims[i]);
 
-        /* Extracted dimension should match. */
-        assert_int_equal(dims[i], dim);
+        /* Stride should match. */
+        assert_int_equal(ten.strides[ten.ndims - (i + 1)], stride);
+        stride *= ten.dims[ten.ndims - (i + 1)];
     }
 
     /* Tensor type should be dense. */
@@ -118,7 +117,7 @@ void fang_ten_create_test(void **state) {
     assert_int_equal(ten.dtyp, FANG_TEN_DTYPE_FLOAT16);
 
     /* Number of elements in tensor. */
-    int size = ten.sdims[0] * ten.sdims[ten.ndims - 1];
+    int size = ten.strides[0] * ten.dims[0];
 
     /* Data should be zero-ed out. */
     _fang_float16_t *fdata = ten.data.dense;
@@ -141,6 +140,14 @@ void fang_ten_create_test(void **state) {
     for(int i = 0; i < size; i++)
         assert_int_equal(idata[i], (int8_t) input_data[i]);
 
+    /* Test scalar tensor creation. */
+    fang_ten_t scalar;
+    assert_true(FANG_ISOK(fang_ten_scalar(&scalar, env, FANG_TEN_DTYPE_INT8,
+        FANG_I2G(69))));
+    /* Scalar tensor data are stored as single element 1-d tensor data. */
+    assert_int_equal(69, ((int8_t *) scalar.data.dense)[0]);
+
+    fang_ten_release(&scalar);
     fang_ten_release(&ten);
 }
 
@@ -150,29 +157,26 @@ void fang_ten_rand_test(void **state) {
     int env = *(int *) *state;
 
     /* Limit environment to a single processor diminishing seed variablitiy. */
-    assert_true(FANG_ISOK(fang_env_cpu_actproc(env, 0, 1)));
-
-    uint32_t dims_x[] = { 4, 3, 4 };
-    uint32_t dims_y[] = { 16, 16 };
+    assert_true(FANG_ISOK(fang_env_cpu_actproc(env, 0)));
 
     fang_ten_t ten_x;
     fang_ten_t ten_y;
     assert_true(FANG_ISOK(fang_ten_create(&ten_x, env, FANG_TEN_DTYPE_INT16,
-        dims_x, _ARR_SIZ(dims_x), NULL)));
+        (uint32_t []) { 4, 3, 4 }, 3, NULL)));
     assert_true(FANG_ISOK(fang_ten_create(&ten_y, env, FANG_TEN_DTYPE_FLOAT8,
-        dims_y, _ARR_SIZ(dims_y), NULL)));
+        (uint32_t []) { 16, 16 }, 2, NULL)));
 
     fang_ten_rand(&ten_x, FANG_I2G(-1024), FANG_I2G(1024), 69);
     fang_ten_rand(&ten_y, FANG_F2G(0.0), FANG_F2G(2.0), 69);
 
     /* `ten_x` data should match. */
-    int size_x = ten_x.sdims[0] * ten_x.sdims[ten_x.ndims - 1];
+    int size_x = ten_x.strides[0] * ten_x.dims[0];
     int16_t *data_x = ten_x.data.dense;
     for(int i = 0; i < size_x; i++)
         assert_int_equal(expected_data_x[i], data_x[i]);
 
     /* `ten_x` data should match. */
-    int size_y = ten_y.sdims[0] * ten_y.sdims[ten_y.ndims - 1];
+    int size_y = ten_y.strides[0] * ten_y.dims[0];
     _fang_float8_t *data_y = ten_y.data.dense;
     for(int i = 0; i < size_y; i++)
         assert_float_equal(expected_data_y[i], _FANG_Q2S(data_y[i]), 1e-6);
@@ -181,7 +185,7 @@ void fang_ten_rand_test(void **state) {
     fang_ten_release(&ten_y);
 
     /* Revert back to all processors. */
-    assert_true(FANG_ISOK(fang_env_cpu_actproc(env, 0, 0)));
+    assert_true(FANG_ISOK(fang_env_cpu_actproc(env, 0)));
 }
 
 /* ================ TESTS END ================ */

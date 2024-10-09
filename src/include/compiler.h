@@ -21,8 +21,8 @@
 /* Suppress unused parameter. */
 #define FANG_UNUSED         __attribute__((unused))
 
-/* Inform compiler the function does not return. */
-#define FANG_NORET         __attribute__((noret))
+/* Always inline a function. */
+#define FANG_INLINE        __attribute__((always_inline))
 
 #else  // __GNUC__ or __clang__
 #define FANG_LIKELY(x)       x
@@ -36,6 +36,8 @@
 #define FANG_MALLOC
 
 #define FANG_UNUSED
+
+#define FANG_INLINE
 #endif // __GNUC__ or __clang__
 
 /* ================ COMPILER OPTIMIZATION MACROS END ================ */

@@ -68,29 +68,13 @@ static void fang_env_cpu_test(void **state) {
     assert_true(FANG_ISOK(_fang_env_retrieve(&env, eid)));
 
     /* Private CPU structure. */
-    _fang_env_cpu_t  *cpu_private = (_fang_env_cpu_t *) env->private;
+    _fang_env_cpu_t *cpu_private = (_fang_env_cpu_t *) env->private;
 
-    /* Should have valid CPU information. */
-    assert_non_null(cpu_private->cpu);
-    assert_int_not_equal(cpu_private->ncpu, 0);
-
-    /* All physical CPU information should be properly set. */
-    _fang_cpu_t *cpu = cpu_private->cpu;
-    int sproc = 0;  // To match processor stride calculations
-    for(int i = 0; i < cpu_private->ncpu; i++) {
-        /* Should have atleast one logical CPU. */
-        assert_int_not_equal(cpu[i].nproc, 0);
-        /* Initially all logical CPU(s) should be active. */
-        assert_int_equal(cpu[i].nproc, cpu[i].nact);
-
-        /* Match logical CPU (CPU cores) stride calculations. */
-        assert_int_equal(cpu[i].sproc, sproc);
-        sproc += cpu[i].nproc;
-    }
+    /* Valid number of processor count should be set. */
+    assert_true(cpu_private->nproc > 0);
 
     /* All processors should be active at first. */
-    int ncact = sproc;  // Total processors active
-    assert_int_equal(cpu_private->ncact, ncact);
+    assert_int_equal(cpu_private->nproc, cpu_private->nact);
 
     // TODO: Test CPU Environment control functions
 

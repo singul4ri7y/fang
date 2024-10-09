@@ -50,7 +50,9 @@ typedef void *fang_gen;
 
 /* Ugly; stay happy and live a long life. */
 #define _FANG_TYPE_DEF(postfix, ityp, otyp)                               \
-FANG_HOT static inline fang_##otyp fang_##postfix(fang_##ityp value) {    \
+FANG_HOT FANG_INLINE static inline                                        \
+    fang_##otyp fang_##postfix(fang_##ityp value)                         \
+{                                                                         \
     union { fang_##ityp i; fang_##otyp o; } _u = { .i = value };          \
     return _u.o;                                                          \
 }

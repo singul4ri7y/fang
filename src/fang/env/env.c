@@ -64,9 +64,9 @@ out:
     return res;
 }
 
-/* Controls number of active processors in a physical CPU. */
+/* Controls number of active processors. */
 /* NOTE: Setting `nact` to 0 would active all the processors (cores). */
-int fang_env_cpu_actproc(int eid, int pcpu, int nact) {
+int fang_env_cpu_actproc(int eid, int nact) {
     int res = FANG_OK;
 
     /* Get Environment structure. */
@@ -74,7 +74,7 @@ int fang_env_cpu_actproc(int eid, int pcpu, int nact) {
     if(!FANG_ISOK(res = _fang_env_retrieve(&env, eid)))
         goto out;
 
-    res = _fang_env_cpu_actproc(env->private, pcpu, nact);
+    res = _fang_env_cpu_actproc(env->private, nact);
 
 out:
     return res;

@@ -17,14 +17,6 @@
 /* ================ HELPER MACROS END ================ */
 
 
-/* ================ FORWARD DECLARATIONS ================ */
-
-/* Environment structure type. */
-typedef struct fang_env fang_env_t;
-
-/* ================ FORWARD DECLARATIONS END ================ */
-
-
 /* ================ DATA STRUCTURES ================ */
 
 /* Type of each tensor. */
@@ -79,10 +71,11 @@ typedef struct fang_ten {
     /* Type of data tensor is holding. */
     fang_ten_dtype_t dtyp;
 
-    /* The dimension and stride is stored simultaneously, where individual
-       dimension can be retrieved through a single division operation. */
-    /* Let's call it "stridemension" B). */
-    uint32_t *sdims;
+    /* Tensor's dimension. */
+    uint32_t *dims;
+
+    /* Respective strides for each dimension. */
+    uint32_t *strides;
 
     /* Tensor data. */
     union {
@@ -108,13 +101,13 @@ typedef struct fang_ten_ops_arg {
 } fang_ten_ops_arg_t;
 
 /* Signature of an operator functions. */
-typedef int (*fang_ten_operator_fn)(fang_ten_ops_arg_t *restrict arg,
-    fang_env_t *env);
+typedef int (*fang_ten_operator_fn)(fang_ten_ops_arg_t *restrict arg);
 
 typedef struct fang_ten_ops {
     fang_ten_operator_fn create;
     fang_ten_operator_fn print;
     fang_ten_operator_fn rand;
+    fang_ten_operator_fn sum;
     fang_ten_operator_fn release;
 } fang_ten_ops_t;
 
@@ -139,6 +132,12 @@ FANG_API FANG_HOT int fang_ten_fprint(fang_ten_t *ten, const char *name,
 /* Fill dense tensor with random numbers. */
 FANG_API int fang_ten_rand(fang_ten_t *ten, fang_gen low, fang_gen high,
     uint32_t seed);
+
+/* Adds two tensor. */
+FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
+    fang_ten_t *y);
+
+// TODO: Add fang_ten_fma (Fuse Multiply-Add) using FMA extension
 
 /* Releases a tensor. */
 FANG_API FANG_HOT int fang_ten_release(fang_ten_t *ten);
