@@ -15,7 +15,13 @@ else()
 endif()
 
 # Microarchitecture
+if(NOT ARCH)
+    # For MSVC
+    set(ARCH AVX2 CACHE STRING "Microarchitecture type for MSVC")
+endif()
+
 if(NOT MARCH)
+    # For Linux compilers such as GCC/Clang
     set(MARCH native CACHE STRING "Microarchitecture type")
 endif()
 
@@ -25,10 +31,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Compiler warnings
 if(MSVC)
-    add_compile_options(/W4 /WX -openmp)
+    add_compile_options(/W4 /WX /favor:AMD64 /arch:${ARCH})
 else()
-    add_compile_options(-pedantic -fopenmp -march=${MARCH} -mtune=intel -Wall
-        -Wextra -Wformat-security -Wundef -Wuninitialized -Wunused)
+    add_compile_options(-pedantic -march=${MARCH} -Wall -Wextra
+        -Wformat-security -Wundef -Wuninitialized -Wunused)
     add_link_options(-fopenmp)
 endif()
 
@@ -119,6 +125,14 @@ target_include_directories(fang PRIVATE "src/include")
 target_compile_definitions(fang PRIVATE
     PROJECT_VERSION="${PROJECT_VERSION}"
 )
+
+# OpenMP
+if(MSVC)
+    target_compile_options(fang PRIVATE -openmp)
+else()
+    target_compile_options(fang PRIVATE -fopenmp)
+    target_link_options(fang PRIVATE -fopenmp)
+endif()
 
 # Set library properties
 set_target_properties(fang PROPERTIES

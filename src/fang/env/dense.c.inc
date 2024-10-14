@@ -2,15 +2,17 @@
 
 /* Makes life easier. */
 /* NOTE: Order conforms to `fang_ten_dtype_t` enum. */
+/* In lower levels, integers don't have signedness in operations. Hence,
+   operating on signed or unsigned integers are the same thing. */
 #define _ACCEL_DENSE(name)         \
 _fang_dense_accel_##name##i8,      \
 _fang_dense_accel_##name##i16,     \
 _fang_dense_accel_##name##i32,     \
 _fang_dense_accel_##name##i64,     \
-_fang_dense_accel_##name##u8,      \
-_fang_dense_accel_##name##u16,     \
-_fang_dense_accel_##name##u32,     \
-_fang_dense_accel_##name##u64,     \
+_fang_dense_accel_##name##i8,      \
+_fang_dense_accel_##name##i16,     \
+_fang_dense_accel_##name##i32,     \
+_fang_dense_accel_##name##i64,     \
 _fang_dense_accel_##name##f8,      \
 _fang_dense_accel_##name##f16,     \
 _fang_dense_accel_##name##bf16,    \
@@ -53,15 +55,15 @@ _fang_get_original_idx(int idx, int *restrict idx_x, int *restrict
     uint32_t seed = (uint32_t) FANG_G2U(arg->z);
 
 /* Common for integer types. */
-#define _ACCEL_RANDI(prefix, postfix, type, annot)                       \
-FANG_HOT FANG_FLATTEN static void                                        \
-_fang_dense_accel_rand##postfix(_fang_cpu_accel_arg_t *restrict arg) {   \
-    _ACCEL_RAND_PROLOGUE(type, prefix);                                  \
-    type *data = (type *) ten->data.dense;                               \
-    for(int i = 0; i < size; i++) {                                      \
-        data[i] = (rand_r(&seed) &                                       \
-            annot##_MAX) % diff + low;                                   \
-    }                                                                    \
+#define _ACCEL_RANDI(bits, type, annot)                                 \
+FANG_HOT FANG_FLATTEN static void                                       \
+_fang_dense_accel_randi##bits(_fang_cpu_accel_arg_t *restrict arg) {    \
+    _ACCEL_RAND_PROLOGUE(type, I);                                      \
+    type *data = (type *) ten->data.dense;                              \
+    for(int i = 0; i < size; i++) {                                     \
+        data[i] = (rand_r(&seed) &                                      \
+            annot##_MAX) % diff + low;                                  \
+    }                                                                   \
 }
 
 /* Common for float types. */
@@ -77,14 +79,10 @@ _fang_dense_accel_randf##bits(_fang_cpu_accel_arg_t *restrict arg) {    \
 }
 
 /* Integer type. */
-_ACCEL_RANDI(I, i8, int8_t, INT8)
-_ACCEL_RANDI(I, i16, int16_t, INT16)
-_ACCEL_RANDI(I, i32, int32_t, INT32)
-_ACCEL_RANDI(I, i64, int64_t, INT64)
-_ACCEL_RANDI(U, u8, uint8_t, UINT8)
-_ACCEL_RANDI(U, u16, uint16_t, UINT16)
-_ACCEL_RANDI(U, u32, uint32_t, UINT32)
-_ACCEL_RANDI(U, u64, uint64_t, UINT64)
+_ACCEL_RANDI(8, int8_t, INT8)
+_ACCEL_RANDI(16, int16_t, INT16)
+_ACCEL_RANDI(32, int32_t, INT32)
+_ACCEL_RANDI(64, int64_t, INT64)
 
 FANG_HOT FANG_FLATTEN void
     _fang_dense_accel_randf8(_fang_cpu_accel_arg_t *restrict arg)
@@ -143,287 +141,47 @@ _ACCEL_RANDF(64, double)
     else if(FANG_LIKELY(broadcast == 3))  /* Matrix. */           \
         vsiz = y->dims[0] * y->dims[1];
 
+/* Mostly common for all types of arithmatic. */
+#define _ACCEL_ARITHMATIC(postfix, type, op)                                   \
+FANG_HOT FANG_FLATTEN static void                                              \
+    _fang_dense_accel_##postfix(_fang_cpu_accel_arg_t *restrict arg)           \
+{                                                                              \
+    _ACCEL_SUM_PROLOGUE(type);                                                 \
+    /* Scalar tensor addition against N-dimensional tensor. */                 \
+    if(FANG_LIKELY(broadcast == 1)) {                                          \
+        for(int i = 0; i < size; i++)                                          \
+            data_dest[i] = data_x[i] op data_y[0];                             \
+    }                                                                          \
+    /* Vector addition against N-dimensional tensor. */                        \
+    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {                   \
+        /* Another way to go would be to use modulus operation, which is       \
+           much more computation intensive than just using nested loops. */    \
+        for(int i = 0; i < size; i += vsiz) {                                  \
+            for(int j = 0; j < vsiz; j++)                                      \
+                data_dest[i + j] = data_x[i + j] op data_y[j];                 \
+        }                                                                      \
+    }                                                                          \
+    /* Broadcast dimension unknown. */                                         \
+    else if(FANG_UNLIKELY(broadcast == 4)) {                                   \
+        for(int i = 0; i < size; i++) {                                        \
+            int idx_x, idx_y;                                                  \
+            /* Get broadcasted flattened index for x and y. */                 \
+            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,           \
+                x->strides, y->strides, x->ndims);                             \
+                                                                               \
+            data_dest[i] = data_x[idx_x] op data_y[idx_y];                     \
+        }                                                                      \
+    } else {                                                                   \
+        for(int i = 0; i < size; i++)                                          \
+            data_dest[i] = data_x[i] op data_y[i];                             \
+    }                                                                          \
+}
+
 /* Integer types. */
-FANG_HOT FANG_FLATTEN static void
-    _fang_dense_accel_sumi8(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(int8_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumi16(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(int16_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumi32(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(int32_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumi64(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(int64_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumu8(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(uint8_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumu16(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(uint16_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumu32(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(uint32_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumu64(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(uint64_t);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
+_ACCEL_ARITHMATIC(sumi8, int8_t, +)
+_ACCEL_ARITHMATIC(sumi16, int16_t, +)
+_ACCEL_ARITHMATIC(sumi32, int32_t, +)
+_ACCEL_ARITHMATIC(sumi64, int64_t, +)
 
 /* Float types. */
 FANG_HOT FANG_FLATTEN void
@@ -552,77 +310,8 @@ FANG_HOT FANG_FLATTEN void
     }
 }
 
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumf32(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(float);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-FANG_HOT FANG_FLATTEN void
-    _fang_dense_accel_sumf64(_fang_cpu_accel_arg_t *restrict arg)
-{
-    _ACCEL_SUM_PROLOGUE(double);
-
-    /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[0];
-    }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
-        /* Another way to go would be to use modulus operation, which is much
-           more computation intensive than just using nested loops. */
-        for(int i = 0; i < size; i += vsiz) {
-            for(int j = 0; j < vsiz; j++)
-                data_dest[i + j] = data_x[i + j] + data_y[j];
-        }
-    }
-    /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
-        for(int i = 0; i < size; i++) {
-            int idx_x, idx_y;
-            /* Get broadcasted flattened index for x and y. */
-            _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,
-                x->strides, y->strides, x->ndims);
-
-            data_dest[i] = data_x[idx_x] + data_y[idx_y];
-        }
-    } else {
-        for(int i = 0; i < size; i++)
-            data_dest[i] = data_x[i] + data_y[i];
-    }
-}
-
-#undef _ACCEL_SUM_PROLOGUE
+_ACCEL_ARITHMATIC(sumf32, float, +)
+_ACCEL_ARITHMATIC(sumf64, double, +)
 
 /* ======== SUM END ======== */
 

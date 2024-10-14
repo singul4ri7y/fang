@@ -128,7 +128,7 @@ int _fang_env_cpu_create(fang_env_private_t **restrict private,
     *private = (fang_env_private_t *) cpu_private;
     *ops = &_cpu_ops;
 
-    // TODO: Control OpenMP threads
+    omp_set_num_threads(cpu_private->nact);
 
 out:
     return res;
@@ -145,7 +145,7 @@ int _fang_env_cpu_actproc(fang_env_private_t *private, int nact) {
         cpu_env->nact = cpu_env->nproc;
     else cpu_env->nact = nact;
 
-    // TODO: Control OpenMP threads
+    omp_set_num_threads(cpu_env->nact);
 
     return res;
 }
