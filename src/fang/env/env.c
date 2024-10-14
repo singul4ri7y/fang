@@ -64,22 +64,6 @@ out:
     return res;
 }
 
-/* Controls number of active processors. */
-/* NOTE: Setting `nact` to 0 would active all the processors (cores). */
-int fang_env_cpu_actproc(int eid, int nact) {
-    int res = FANG_OK;
-
-    /* Get Environment structure. */
-    fang_env_t *env;
-    if(!FANG_ISOK(res = _fang_env_retrieve(&env, eid)))
-        goto out;
-
-    res = _fang_env_cpu_actproc(env->private, nact);
-
-out:
-    return res;
-}
-
 /* Releases an Environment if not released. */
 int fang_env_release(int eid) {
     int res = FANG_OK;

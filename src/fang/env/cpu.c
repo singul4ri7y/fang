@@ -134,22 +134,6 @@ out:
     return res;
 }
 
-/* Changes processor count of a physical CPU. */
-int _fang_env_cpu_actproc(fang_env_private_t *private, int nact) {
-    int res = FANG_OK;
-    _fang_env_cpu_t *cpu_env = (_fang_env_cpu_t *) private;
-
-    if(nact < 0 || nact > cpu_env->nproc)
-        res = -FANG_INVPCOUNT;
-    else if(nact == 0)
-        cpu_env->nact = cpu_env->nproc;
-    else cpu_env->nact = nact;
-
-    omp_set_num_threads(cpu_env->nact);
-
-    return res;
-}
-
 /* ================ DEFINITIONS END ================ */
 
 

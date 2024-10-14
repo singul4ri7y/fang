@@ -156,9 +156,6 @@ void fang_ten_rand_test(void **state) {
     /* Get the Environment. */
     int env = *(int *) *state;
 
-    /* Limit environment to a single processor diminishing seed variablitiy. */
-    assert_true(FANG_ISOK(fang_env_cpu_actproc(env, 0)));
-
     fang_ten_t ten_x;
     fang_ten_t ten_y;
     assert_true(FANG_ISOK(fang_ten_create(&ten_x, env, FANG_TEN_DTYPE_INT16,
@@ -183,9 +180,6 @@ void fang_ten_rand_test(void **state) {
 
     fang_ten_release(&ten_x);
     fang_ten_release(&ten_y);
-
-    /* Revert back to all processors. */
-    assert_true(FANG_ISOK(fang_env_cpu_actproc(env, 0)));
 }
 
 /* ================ TESTS END ================ */

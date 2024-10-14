@@ -53,10 +53,6 @@ typedef struct fang_env {
 /* Creates an Environment and returns the ID. */
 FANG_API int fang_env_create(fang_env_type_t type, fang_reallocator_t realloc);
 
-/* Controls number of active processors. */
-/* NOTE: Setting `nact` to 0 would active all the processors (cores). */
-FANG_API int fang_env_cpu_actproc(int eid, int nact);
-
 /* Releases an Environment if not released. */
 FANG_API int fang_env_release(int eid);
 
