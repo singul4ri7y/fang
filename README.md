@@ -1,2 +1,2 @@
-# nue-net
-A simple Neural Network library
+# Fang
+A simple yet powerful Deep Learning framework written in C!
