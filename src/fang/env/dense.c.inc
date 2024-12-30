@@ -126,19 +126,21 @@ _ACCEL_RANDF(64, double)
 /* ======== SUM ======== */
 
 /* Common. */
-#define _ACCEL_SUM_PROLOGUE(type)                                 \
-    fang_ten_t *dest = (fang_ten_t *) arg->dest;                  \
-    fang_ten_t *x    = (fang_ten_t *) arg->x;                     \
-    fang_ten_t *y    = (fang_ten_t *) arg->y;                     \
-    type *data_dest  = (type *) dest->data.dense;                 \
-    type *data_x     = (type *) x->data.dense;                    \
-    type *data_y     = (type *) y->data.dense;                    \
-    int size         = (int) dest->strides[0] * dest->dims[0];    \
-    int broadcast    = (int) FANG_G2I(arg->z);                    \
-    int vsiz         = 0;                                         \
-    if(FANG_LIKELY(broadcast == 2))  /* Vector. */                \
-        vsiz = y->dims[y->ndims - 1];                             \
-    else if(FANG_LIKELY(broadcast == 3))  /* Matrix. */           \
+#define _ACCEL_SUM_PROLOGUE(type)                                    \
+    fang_ten_t *dest = (fang_ten_t *) arg->dest;                     \
+    fang_ten_t *x    = (fang_ten_t *) arg->x;                        \
+    fang_ten_t *y    = (fang_ten_t *) arg->y;                        \
+    type *data_dest  = FANG_ASSUME_ALIGNED(dest->data.dense, 64);    \
+    type *data_x     = FANG_ASSUME_ALIGNED(x->data.dense, 64);       \
+    type *data_y     = FANG_ASSUME_ALIGNED(y->data.dense, 64);       \
+    int size         = (int) dest->strides[0] * dest->dims[0];       \
+    int broadcast    = (int) FANG_G2I(arg->z);                       \
+    int vsiz         = 0;                                            \
+    if(FANG_LIKELY(broadcast == FANG_BCAST_ROWVEC))                  \
+        vsiz = y->dims[y->ndims - 1];                                \
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_COLVEC))             \
+        vsiz = y->dims[y->ndims - 2];                                \
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_MATRIX))             \
         vsiz = y->dims[0] * y->dims[1];
 
 /* Mostly common for all types of arithmatic. */
@@ -148,12 +150,14 @@ FANG_HOT FANG_FLATTEN static void                                              \
 {                                                                              \
     _ACCEL_SUM_PROLOGUE(type);                                                 \
     /* Scalar tensor addition against N-dimensional tensor. */                 \
-    if(FANG_LIKELY(broadcast == 1)) {                                          \
+    if(FANG_LIKELY(broadcast == FANG_BCAST_SCALAR)) {                          \
         for(int i = 0; i < size; i++)                                          \
             data_dest[i] = data_x[i] op data_y[0];                             \
     }                                                                          \
-    /* Vector addition against N-dimensional tensor. */                        \
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {                   \
+    /* Row-major vector addition against N-dimensional tensor. */              \
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_ROWVEC ||                      \
+        broadcast == FANG_BCAST_MATRIX))                                       \
+    {                                                                          \
         /* Another way to go would be to use modulus operation, which is       \
            much more computation intensive than just using nested loops. */    \
         for(int i = 0; i < size; i += vsiz) {                                  \
@@ -161,8 +165,19 @@ FANG_HOT FANG_FLATTEN static void                                              \
                 data_dest[i + j] = data_x[i + j] op data_y[j];                 \
         }                                                                      \
     }                                                                          \
+    /* Col-major vector/matrix addition against N-dimensional tensor. */       \
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_COLVEC)) {                     \
+        int xvsiz = x->dims[x->ndims - 1];                                     \
+        int skip = xvsiz * vsiz;                                               \
+        for(int i = 0; i < size; i += skip) {                                  \
+            for(int j = 0, idx = 0; j < skip; j += xvsiz, idx++) {             \
+                for(int k = 0; k < xvsiz; k++)                                 \
+                    data_dest[i + j + k] = data_x[i + j + k] op data_y[idx];   \
+            }                                                                  \
+        }                                                                      \
+    }                                                                          \
     /* Broadcast dimension unknown. */                                         \
-    else if(FANG_UNLIKELY(broadcast == 4)) {                                   \
+    else if(FANG_UNLIKELY(broadcast == FANG_BCAST_UNKNOWN)) {                  \
         for(int i = 0; i < size; i++) {                                        \
             int idx_x, idx_y;                                                  \
             /* Get broadcasted flattened index for x and y. */                 \
@@ -190,14 +205,16 @@ FANG_HOT FANG_FLATTEN void
     _ACCEL_SUM_PROLOGUE(_fang_float8_t);
 
     /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
+    if(FANG_LIKELY(broadcast == FANG_BCAST_SCALAR)) {
         for(int i = 0; i < size; i++) {
             data_dest[i] = _FANG_S2Q(_FANG_Q2S(data_x[i]) +
                 _FANG_Q2S(data_y[0]));
         }
     }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
+    /* Row-major vector/matrix addition against N-dimensional tensor. */
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_ROWVEC ||
+        broadcast == FANG_BCAST_MATRIX))
+    {
         /* Another way to go would be to use modulus operation, which is much
            more computation intensive than just using nested loops. */
         for(int i = 0; i < size; i += vsiz) {
@@ -207,8 +224,22 @@ FANG_HOT FANG_FLATTEN void
             }
         }
     }
+    /* Col-major vector addition against N-dimensional tensor. */
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_COLVEC)) {
+        int xvsiz = x->dims[x->ndims - 1];
+        int skip = xvsiz * vsiz;
+        for(int i = 0; i < size; i += skip) {
+            for(int j = 0, idx = 0; j < skip; j += xvsiz, idx++) {
+                for(int k = 0; k < xvsiz; k++) {
+                    data_dest[i + j + k] =
+                        _FANG_S2Q(_FANG_Q2S(data_x[i + j + k]) +
+                        _FANG_Q2S(data_y[idx]));
+                }
+            }
+        }
+    }
     /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
+    else if(FANG_UNLIKELY(broadcast == FANG_BCAST_UNKNOWN)) {
         for(int i = 0; i < size; i++) {
             int idx_x, idx_y;
             /* Get broadcasted flattened index for x and y. */
@@ -232,14 +263,16 @@ FANG_HOT FANG_FLATTEN void
     _ACCEL_SUM_PROLOGUE(_fang_float16_t);
 
     /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
+    if(FANG_LIKELY(broadcast == FANG_BCAST_SCALAR)) {
         for(int i = 0; i < size; i++) {
             data_dest[i] = _FANG_S2H(_FANG_H2S(data_x[i]) +
                 _FANG_H2S(data_y[0]));
         }
     }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
+    /* Row-major vector/matrix addition against N-dimensional tensor. */
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_ROWVEC ||
+        broadcast == FANG_BCAST_MATRIX))
+    {
         /* Another way to go would be to use modulus operation, which is much
            more computation intensive than just using nested loops. */
         for(int i = 0; i < size; i += vsiz) {
@@ -249,8 +282,22 @@ FANG_HOT FANG_FLATTEN void
             }
         }
     }
+    /* Col-major vector addition against N-dimensional tensor. */
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_COLVEC)) {
+        int xvsiz = x->dims[x->ndims - 1];
+        int skip = xvsiz * vsiz;
+        for(int i = 0; i < size; i += skip) {
+            for(int j = 0, idx = 0; j < skip; j += xvsiz, idx++) {
+                for(int k = 0; k < xvsiz; k++) {
+                    data_dest[i + j + k] =
+                        _FANG_S2H(_FANG_H2S(data_x[i + j + k]) +
+                        _FANG_H2S(data_y[idx]));
+                }
+            }
+        }
+    }
     /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
+    else if(FANG_UNLIKELY(broadcast == FANG_BCAST_UNKNOWN)) {
         for(int i = 0; i < size; i++) {
             int idx_x, idx_y;
             /* Get broadcasted flattened index for x and y. */
@@ -274,14 +321,16 @@ FANG_HOT FANG_FLATTEN void
     _ACCEL_SUM_PROLOGUE(_fang_bfloat16_t);
 
     /* Scalar tensor addition against N-dimensional tensor. */
-    if(FANG_LIKELY(broadcast == 1)) {
+    if(FANG_LIKELY(broadcast == FANG_BCAST_SCALAR)) {
         for(int i = 0; i < size; i++) {
             data_dest[i] = _FANG_S2BH(_FANG_BH2S(data_x[i]) +
                 _FANG_BH2S(data_y[0]));
         }
     }
-    /* Vector addition against N-dimensional tensor. */
-    else if(FANG_LIKELY(broadcast == 2 || broadcast == 3)) {
+    /* Row-major vector/matrix addition against N-dimensional tensor. */
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_ROWVEC ||
+        broadcast == FANG_BCAST_MATRIX))
+    {
         /* Another way to go would be to use modulus operation, which is much
            more computation intensive than just using nested loops. */
         for(int i = 0; i < size; i += vsiz) {
@@ -291,8 +340,22 @@ FANG_HOT FANG_FLATTEN void
             }
         }
     }
+    /* Col-major vector addition against N-dimensional tensor. */
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_COLVEC)) {
+        int xvsiz = x->dims[x->ndims - 1];
+        int skip = xvsiz * vsiz;
+        for(int i = 0; i < size; i += skip) {
+            for(int j = 0, idx = 0; j < skip; j += xvsiz, idx++) {
+                for(int k = 0; k < xvsiz; k++) {
+                    data_dest[i + j + k] =
+                        _FANG_S2BH(_FANG_BH2S(data_x[i + j + k]) +
+                        _FANG_BH2S(data_y[idx]));
+                }
+            }
+        }
+    }
     /* Broadcast dimension unknown. */
-    else if(FANG_UNLIKELY(broadcast == 4)) {
+    else if(FANG_UNLIKELY(broadcast == FANG_BCAST_UNKNOWN)) {
         for(int i = 0; i < size; i++) {
             int idx_x, idx_y;
             /* Get broadcasted flattened index for x and y. */

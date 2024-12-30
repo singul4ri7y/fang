@@ -36,7 +36,7 @@
 #define FANG_INVPCOUNT      104
 
 /* Environment mismatch. Tensors do not belong to same Environment. */
-#define FANG_ENVMISMATCH    105
+#define FANG_ENVNOMATCH     105
 
 /* ================ ENVIRONMENT END ================ */
 

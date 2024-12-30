@@ -14,6 +14,26 @@
 /* Print tensor to some other file. */
 #define FANG_TEN_FPRINT(ten, f)    fang_ten_fprint(ten, #ten, 0, f)
 
+/* Macros to dictate broadcast patterns, used to provide hints to lower-level
+ * on how broadcasting should play out a.k.a fast-routes. There are 6
+ * broadcast patterns:
+ *   1. Boradcast scalar against N-dimensional tensor. Denoted with 1.
+ *   2. Broadcast row-major vector against N-dimensional tensor. Denoted with 2.
+ *   3. Broadcast a single channel. E.g. while operating over a (2, 3, 5, 3) and
+ *      (1, 1, 1, 3) tensors. Works just like adding a row-major vector. Also
+ *      denoted by 2.
+ *   4. Broadcast col-major vector against N-dimensional tensor. Denoted with 3.
+ *   4. Broadcast a matrix against N-dimentional tensor (Perceived as array of
+ *      matrices of same shape if flattened at some degree). Denoted with 4.
+ *   5. Broadcast dimension is unknown. Denoted with 5.
+ *   6. No broadcasting :). Denoted with 0.
+ */
+#define FANG_BCAST_SCALAR         1
+#define FANG_BCAST_ROWVEC         2
+#define FANG_BCAST_COLVEC         3
+#define FANG_BCAST_MATRIX         4
+#define FANG_BCAST_UNKNOWN        5
+
 /* ================ HELPER MACROS END ================ */
 
 

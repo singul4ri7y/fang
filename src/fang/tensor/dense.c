@@ -26,52 +26,52 @@ FANG_HOT FANG_INLINE static inline void
         strides[i] = dims[i + 1] * strides[i + 1];
 }
 
-/* There are 5 broadcast patterns:
- * 1. Boradcast scalar against N-dimensional tensor. Denoted with 1.
- * 2. Broadcast vector against N-dimensional tensor. Denoted with 2.
- * 3. Broadcast a single channel. E.g. while operating over a (2, 3, 5, 3) and
- *    (1, 1, 1, 3) tensors. Works just like adding a vector. Also denoted by 2.
- * 4. Broadcast a matrix against N-dimentional tensor (array of
- *    matrices of same shape). Denoted with 3.
- * 5. Broadcast dimension is unknown. Denoted with 4.
- * 6. No broadcasting :). Denoted with 0.
- */
+/* Returns whether specific broadcasting type being used (fast-route). Checkout
+ * `tensor.h` for more info. */
 FANG_HOT FANG_INLINE static inline int
     _fang_broadcast_pattern(fang_ten_t *restrict pwx, fang_ten_t *restrict pwy)
 {
     /* Broadcast dimension unknown. */
-    int pattern = 4;
+    int pattern = FANG_BCAST_UNKNOWN;
 
-    /* Swap large tensor in terms of size. */
+    /* Swap large tensor in terms of size. Larger tensor at pwx, smaller tensor
+     * at pwy. This is done to make sure only the broadcastee tensor stays to
+     * the right-hand-side. */
     if(FANG_UNLIKELY(pwy->strides[0] * pwy->dims[0] >
         pwx->strides[0] * pwx->dims[0]))
     {
         fang_ten_t temp = *pwy;
         *pwy = *pwx;
         *pwx = temp;
-    }
+    };
 
     /* Scalar tensor/1-element tensors against N-dimensional tensor. */
     if(FANG_LIKELY(pwy->strides[0] * pwy->dims[0] == 1))
-        pattern = 1;
-    /* Vector against N-dimensional tensor. */
+        pattern = FANG_BCAST_SCALAR;
+    /* Row-major vector against N-dimensional tensor. */
     else if(FANG_LIKELY(pwy->ndims == 1 &&
         pwx->dims[pwx->ndims - 1] == pwy->dims[0]))
     {
-        pattern = 2;
+        pattern = FANG_BCAST_ROWVEC;
+    }
+    /* Col-major vector against N-dimensional tensor. */
+    else if(FANG_LIKELY(pwy->ndims >= 2 && pwy->dims[1] == 1 &&
+        pwx->dims[pwx->ndims - 2] == pwy->dims[0]))
+    {
+        pattern = FANG_BCAST_COLVEC;
     }
     /* Broadcast over a channel. Mostly used when adding bias in
        image processing. */
     else if(FANG_LIKELY(pwy->strides[0] * pwy->dims[0] ==
         pwx->dims[pwx->ndims - 1]))
     {
-        pattern = 2;
+        pattern = FANG_BCAST_ROWVEC;
     }
     /* Matrix against N-dimensional matrices. */
-    else if(FANG_LIKELY(pwy->ndims == 2 && !memcmp(pwx->dims + (pwx->ndims - 2),
+    else if(FANG_LIKELY(pwy->ndims >= 2 && !memcmp(pwx->dims + (pwx->ndims - 2),
         pwy->dims + (pwy->ndims - 2), 2 * sizeof(*pwx->dims))))
     {
-        pattern = 3;
+        pattern = FANG_BCAST_MATRIX;
     }
 
     return pattern;
@@ -303,7 +303,7 @@ FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
 
     /* Tensors have to belong to same Environment. */
     if(FANG_UNLIKELY(dest->eid != x->eid || x->eid != y->eid)) {
-        res = -FANG_ENVMISMATCH;
+        res = -FANG_ENVNOMATCH;
         goto out;
     }
 
@@ -335,7 +335,7 @@ FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
 
     /* Batch system. */
     if(FANG_LIKELY(x->ndims == y->ndims)) {
-        /* Check if tensors are broadcastable, if not batched. */
+        /* Check if tensors are batched. */
         if(FANG_LIKELY(!memcmp(x->dims, y->dims, x->ndims *
             sizeof(uint32_t))))
         {
@@ -351,6 +351,7 @@ FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
             arg.z = FANG_I2G(0);
             res = env->ops->dense->sum(&arg);
         } else {
+            /* Check if tensors are broadcastable, if not batched. */
             for(int i = 0; i < x->ndims; i++) {
                 uint32_t xdim = wx.dims[i];
                 uint32_t ydim = wy.dims[i];
@@ -381,7 +382,8 @@ FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
             uint32_t y_broadcasted_strides[y->ndims];
             int pattern = _fang_broadcast_pattern(&wx, &wy);
 
-            if(FANG_UNLIKELY(pattern == 4)) {
+            /* No fast route has been found. */
+            if(FANG_UNLIKELY(pattern == FANG_BCAST_UNKNOWN)) {
                 /* Pre-compute broadcasted strides. */
                 for(int i = 0; i < wx.ndims; i++) {
                     uint32_t xdim = wx.dims[i], ydim = wy.dims[i];
@@ -427,7 +429,8 @@ FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
         uint32_t x_broadcasted_strides[dmax];
         uint32_t y_broadcasted_strides[dmax];
 
-        if(FANG_UNLIKELY(pattern == 4)) {
+        /* No fast route has been found. */
+        if(FANG_UNLIKELY(pattern == FANG_BCAST_UNKNOWN)) {
             /* Calculate broadcasted strides. */
             for(int i = 0; i < dmax; i++) {
                 x_broadcasted_strides[i] = wx.dims[i] != 1 ? wx.strides[i] : 0;

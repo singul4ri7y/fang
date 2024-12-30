@@ -5,28 +5,31 @@
 
 #if defined(__GNUC__) || defined(__clang__)
 /* Branch predictions. */
-#define FANG_LIKELY(x)      __builtin_expect(!!(x), 1)
-#define FANG_UNLIKELY(x)    __builtin_expect(!!(x), 0)
+#define FANG_LIKELY(x)               __builtin_expect(!!(x), 1)
+#define FANG_UNLIKELY(x)             __builtin_expect(!!(x), 0)
+
+/* Tell compiler to assume some memory is N-byte aligned. */
+#define FANG_ASSUME_ALIGNED(m, b)    __builtin_assume_aligned((void *) m, b)
 
 /* For optimizing hot/cold code sections and routines (functions). */
-#define FANG_HOT            __attribute__((hot))
-#define FANG_COLD           __attribute__((cold))
+#define FANG_HOT                     __attribute__((hot))
+#define FANG_COLD                    __attribute__((cold))
 
 /* Inline every function call, reducing overhead. */
-#define FANG_FLATTEN        __attribute__((flatten))
+#define FANG_FLATTEN                 __attribute__((flatten))
 
 /* To be used with reallocator functions. */
-#define FANG_MALLOC         __attribute__((malloc))
+#define FANG_MALLOC                  __attribute__((malloc))
 
 /* Suppress unused parameter. */
-#define FANG_UNUSED         __attribute__((unused))
+#define FANG_UNUSED                  __attribute__((unused))
 
 /* Always inline a function. */
-#define FANG_INLINE        __attribute__((always_inline))
+#define FANG_INLINE                  __attribute__((always_inline))
 
 #else  // __GNUC__ or __clang__
-#define FANG_LIKELY(x)       x
-#define FANG_UNLIKELY(x)    !x
+#define FANG_LIKELY(x)               !!(x)
+#define FANG_UNLIKELY(x)             !!(x)
 
 #define FANG_HOT
 #define FANG_COLD
