@@ -8,31 +8,44 @@
 
 /* ================ HELPER MACROS ================ */
 
+/* ======== FUNCTION WRAPPER MACROS ======== */
+
 /* Print tensor to stdout. */
 #define FANG_TEN_PRINT(ten)        fang_ten_fprint(ten, #ten, 0, stdout)
 
 /* Print tensor to some other file. */
 #define FANG_TEN_FPRINT(ten, f)    fang_ten_fprint(ten, #ten, 0, f)
 
+/* ======== FUNCTION WRAPPER MACROS END ======== */
+
+/* ======== TENSOR BROADCASTING MACROS ======== */
+
 /* Macros to dictate broadcast patterns, used to provide hints to lower-level
  * on how broadcasting should play out a.k.a fast-routes. There are 6
  * broadcast patterns:
  *   1. Boradcast scalar against N-dimensional tensor. Denoted with 1.
  *   2. Broadcast row-major vector against N-dimensional tensor. Denoted with 2.
- *   3. Broadcast a single channel. E.g. while operating over a (2, 3, 5, 3) and
- *      (1, 1, 1, 3) tensors. Works just like adding a row-major vector. Also
- *      denoted by 2.
- *   4. Broadcast col-major vector against N-dimensional tensor. Denoted with 3.
+ *   3. Broadcast col-major vector against N-dimensional tensor. Denoted with 3.
  *   4. Broadcast a matrix against N-dimentional tensor (Perceived as array of
  *      matrices of same shape if flattened at some degree). Denoted with 4.
  *   5. Broadcast dimension is unknown. Denoted with 5.
  *   6. No broadcasting :). Denoted with 0.
  */
+
+/* NOTE: Here, dimensions e.g. (1, 1, 1, 1, 7) is considered a row vector with
+ *   only single dimension, just like (7) (or (1, 7) if considered in context of
+ *   matrices). Similarly, column vector and matrix broadcasting follows the
+ *   same dimension contraction if leading dimensions are 1.
+ */
+
+#define FANG_NO_BCAST             0
 #define FANG_BCAST_SCALAR         1
 #define FANG_BCAST_ROWVEC         2
 #define FANG_BCAST_COLVEC         3
 #define FANG_BCAST_MATRIX         4
 #define FANG_BCAST_UNKNOWN        5
+
+/* ======== TENSOR BROADCASTING MACROS END ======== */
 
 /* ================ HELPER MACROS END ================ */
 
@@ -53,12 +66,12 @@ typedef struct fang_ten_sparse_coo {
     /* Indicies for non-zero elements. */
     uint32_t **idx;
 
-    /* Contiguous non-zero elements. */
+    /* Contiguous non-zero elements. Row-major order. */
     void *data;
 } fang_ten_sparse_coo_t;
 
 /* Data type of each tensor. */
-/* NOTE: DO NOT MESS AROUND WITH ORDER. */
+/* NOTE: TRY NOT TO CHANGE THE ORDERING. */
 typedef enum fang_ten_dtype {
     FANG_TEN_DTYPE_INT8,
     FANG_TEN_DTYPE_INT16,
@@ -97,7 +110,7 @@ typedef struct fang_ten {
     /* Respective strides for each dimension. */
     uint32_t *strides;
 
-    /* Tensor data. */
+    /* Tensor data. Row-major order. */
     union {
         /* Dense tensor contiguous data. */
         void *dense;
@@ -109,27 +122,39 @@ typedef struct fang_ten {
 
 /* Pass arguments to the operator functions with this structure. */
 /* NOTE: Argument structure also can be used to retrieve data from operator
-   functions. Recommended field for that is `y`. */
+ *   functions. Recommended field for that is `y`.
+ */
 typedef struct fang_ten_ops_arg {
     /* May used to pass resulting tensor. */
-    fang_gen dest;
+    fang_gen_t dest;
 
-    /* May used to pass input tensors or data. */
-    fang_gen x;
-    fang_gen y;
-    fang_gen z;
+    /* May used to pass input tensors and/or data. */
+    fang_gen_t x;
+    fang_gen_t y;
+    fang_gen_t z;
+    fang_gen_t alpha;
+    fang_gen_t beta;
 } fang_ten_ops_arg_t;
 
 /* Signature of an operator functions. */
 typedef int (*fang_ten_operator_fn)(fang_ten_ops_arg_t *restrict arg);
 
+/* Operators supported by Tensor implementation. */
 typedef struct fang_ten_ops {
     fang_ten_operator_fn create;
     fang_ten_operator_fn print;
     fang_ten_operator_fn rand;
     fang_ten_operator_fn sum;
+    fang_ten_operator_fn gemm;
     fang_ten_operator_fn release;
 } fang_ten_ops_t;
+
+/* Used to indicate whether to transpose a matrix (two trailing dimension within
+ * tensor) while performing GEMM. */
+typedef enum fang_ten_gemm_transp {
+    FANG_TEN_GEMM_NO_TRANSPOSE,
+    FANG_TEN_GEMM_TRANSPOSE
+} fang_ten_gemm_transp_t;
 
 /* ================ DATA STRUCTURES END ================ */
 
@@ -143,19 +168,26 @@ FANG_API FANG_HOT int fang_ten_create(fang_ten_t *ten, int eid,
 
 /* Creates a scalar tensor. */
 FANG_API FANG_HOT int fang_ten_scalar(fang_ten_t *ten, int eid,
-    fang_ten_dtype_t dtyp, fang_gen value);
+    fang_ten_dtype_t dtyp, fang_gen_t value);
 
 /* Prints a tensor to a file. */
 FANG_API FANG_HOT int fang_ten_fprint(fang_ten_t *ten, const char *name,
     int padding, FILE *file);
 
 /* Fill dense tensor with random numbers. */
-FANG_API int fang_ten_rand(fang_ten_t *ten, fang_gen low, fang_gen high,
+FANG_API int fang_ten_rand(fang_ten_t *ten, fang_gen_t low, fang_gen_t high,
     uint32_t seed);
 
 /* Adds two tensor. */
 FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
     fang_ten_t *y);
+
+/* Performs General Matrix-Matrix Multiply (GEMM) operation on two trailing
+   dimension. */
+/* dest := alpha * xy + beta * dest */
+FANG_API FANG_HOT int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
+    fang_ten_gemm_transp_t transp_y, fang_gen_t beta, fang_ten_t *restrict dest,
+    fang_gen_t alpha, fang_ten_t *restrict x, fang_ten_t *restrict y);
 
 // TODO: Add fang_ten_fma (Fuse Multiply-Add) using FMA extension
 

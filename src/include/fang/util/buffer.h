@@ -59,7 +59,8 @@ FANG_API FANG_HOT void *fang_buffer_get(fang_buffer_t *restrict buff,
 
 /* Retrieve buffer pointer and count from structure. */
 /* NOTE: It is always recommended to add a terminator character using
- * `fang_buffer_add` while retrieving string type data. */
+ *   `fang_buffer_add` while retrieving string type data.
+ */
 FANG_API void *fang_buffer_retrieve(fang_buffer_t *restrict buff,
     size_t *restrict count);
 

@@ -29,7 +29,10 @@ endif()
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Compiler warnings
+# Set of supported micro-architecture for CPU GEMM implementation
+set(SUPPORTED_GEMM_CPU_TARGETS "haswell")
+
+# Compiler warnings and other flags
 if(MSVC)
     add_compile_options(/W4 /WX /favor:AMD64 /arch:${ARCH})
 else()
@@ -68,6 +71,48 @@ else()
     mesasge(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}!")
 endif()
 
+# Source files
+file(GLOB_RECURSE SOURCE_FILES "src/fang/*.c")
+list(FILTER SOURCE_FILES EXCLUDE REGEX "src/fang/platform/.*\\.c$")
+
+# Platform specific source files
+file(GLOB_RECURSE PLATFORM_SOURCE_FILES "src/fang/platform/${PLATFORM}/*.c")
+list(APPEND SOURCE_FILES ${PLATFORM_SOURCE_FILES})
+
+# Fang is a shared library by default
+add_library(fang SHARED ${SOURCE_FILES})
+
+# Includes
+target_include_directories(fang PRIVATE "src/include")
+
+# GEMM CPU target micro-architecture
+if(GEMM_CPU_TARGET)
+    # Convert to lower-case for case-insensitivity
+    string(TOLOWER "${GEMM_CPU_TARGET}" GEMM_CPU_TARGET)
+
+    # Check if provided architecture is in the list
+    list(FIND SUPPORTED_GEMM_CPU_TARGETS "${GEMM_CPU_TARGET}" FOUND_INDEX)
+
+    # If provided architecture is not found, throw error
+    if(FOUND_INDEX EQUAL -1)
+        message(FATAL_ERROR "GEMM_CPU_TARGET is not supported. Supported   \
+            targets: ${SUPPORTED_GEMM_CPU_TARGETS}")
+    endif()
+else()
+    set(GEMM_CPU_TARGET "haswell")
+endif()
+
+# Set compile time macros
+target_compile_definitions(fang PRIVATE
+    PROJECT_VERSION="${PROJECT_VERSION}"
+
+    # Building Fang as a shared library
+    FANG_LIB
+
+    # Set GEMM CPU target
+    FANG_GEMM_CPU_TARGET=${GEMM_CPU_TARGET}
+)
+
 # Check for AVX512 and AVX2 support
 include(CheckCSourceRuns)
 set(CMAKE_REQUIRED_FLAGS -mavx512f -mavx2)
@@ -94,37 +139,15 @@ check_c_source_runs("
 " HAVE_AVX2)
 
 if(HAVE_AVX512 AND NOT NO_SIMD)
-    add_compile_options(-mavx512f)
-    add_definitions(-DFANG_USE_AVX512)
+    target_compile_options(fang PRIVATE -mavx512f)
+    target_compile_definitions(fang PRIVATE FANG_USE_AVX512)
     message(STATUS "AVX512 support enabled")
 endif()
 if(HAVE_AVX2 AND NOT NO_SIMD)
-    add_compile_options(-mavx2)
-    add_definitions(-DFANG_USE_AVX2)
+    target_compile_options(fang PRIVATE -mavx2)
+    target_compile_definitions(fang PRIVATE FANG_USE_AVX2)
     message(STATUS "AVX2 support enabled")
 endif()
-
-# Building Fang as a shared library
-add_definitions(-DFANG_LIB)
-
-# Source files
-file(GLOB_RECURSE SOURCE_FILES "src/fang/*.c")
-list(FILTER SOURCE_FILES EXCLUDE REGEX "src/fang/platform/.*\\.c$")
-
-# Platform specific source files
-file(GLOB_RECURSE PLATFORM_SOURCE_FILES "src/fang/platform/${PLATFORM}/*.c")
-list(APPEND SOURCE_FILES ${PLATFORM_SOURCE_FILES})
-
-# Fang is a shared library by default
-add_library(fang SHARED ${SOURCE_FILES})
-
-# Includes
-target_include_directories(fang PRIVATE "src/include")
-
-# Set version
-target_compile_definitions(fang PRIVATE
-    PROJECT_VERSION="${PROJECT_VERSION}"
-)
 
 # OpenMP
 if(MSVC)

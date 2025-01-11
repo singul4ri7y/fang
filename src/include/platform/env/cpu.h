@@ -1,5 +1,5 @@
-#ifndef FANG_LINUX_CPU_H
-#define FANG_LINUX_CPU_H
+#ifndef FANG_PLATFORM_CPU_H
+#define FANG_PLATFORM_CPU_H
 
 #include <fang/tensor.h>
 #include <env/cpu/cpu.h>
@@ -13,4 +13,4 @@ int _fang_env_cpu_getinfo(int *restrict nproc);
 
 /* ================ DECLARATIONS END ================ */
 
-#endif  // FANG_LINUX_CPU_H
+#endif  // FANG_PLATFORM_CPU_H

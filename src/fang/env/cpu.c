@@ -2,6 +2,7 @@
 #include <fang/status.h>
 #include <fang/tensor.h>
 #include <env/cpu/float.h>
+#include <env/cpu/gemm.h>
 #include <platform/env/cpu.h>
 #include <string.h>
 #include <stdbool.h>
@@ -14,11 +15,13 @@
 /* Arguments passed to each kernel . */
 typedef struct _fang_cpu_accel_arg {
     /* Parameters. */
-    fang_gen dest;  // Probably destination tensor
-    /* Can be tensor or general purpose data. */
-    fang_gen x;
-    fang_gen y;
-    fang_gen z;
+    fang_gen_t dest;  // May used to pass resulting tensor
+    /* Can be tensor and/or general purpose data. */
+    fang_gen_t x;
+    fang_gen_t y;
+    fang_gen_t z;
+    fang_gen_t alpha;
+    fang_gen_t beta;
 } _fang_cpu_accel_arg_t;
 
 /* Forward declaration of kernel. */
@@ -26,8 +29,11 @@ typedef void (*_fang_cpu_accel_t)(_fang_cpu_accel_arg_t *restrict arg);
 
 /* ================ PRIVATE DATA STRUCTURES END ================ */
 
-// Taboo lol
+/* Include dense tensor operation accelerators. */
 #include "dense.c.inc"
+
+/* Dummy accelerator for padding. */
+static void _dummy_accel(FANG_UNUSED _fang_cpu_accel_arg_t *restrict arg) {}
 
 /* ================ FORWARD DECLARATIONS ================ */
 
@@ -47,6 +53,10 @@ FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_rand(
 FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_sum(
     fang_ten_ops_arg_t *restrict arg);
 
+/* Performs GEMM operation between two tensors (this sounds so cool!). */
+FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_gemm(
+        fang_ten_ops_arg_t *restrict arg);
+
 /* Releases a dense tensor. */
 FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_release(
     fang_ten_ops_arg_t *restrict arg);
@@ -62,6 +72,7 @@ static fang_ten_ops_t _dense = {
     .print = _fang_env_cpu_dense_ops_print,
     .rand = _fang_env_cpu_dense_ops_rand,
     .sum = _fang_env_cpu_dense_ops_sum,
+    .gemm = _fang_env_cpu_dense_ops_gemm,
     .release = _fang_env_cpu_dense_ops_release
 };
 
@@ -73,7 +84,8 @@ static fang_env_ops_t _cpu_ops = {
 
 /* Single element data size of each tensor data type. */
 /* NOTE: This array conforms to `fang_ten_dtype_t` enum, any changes made to
-   that enum should reflect here. */
+ *   that enum should reflect here.
+ */
 static const int dsiz[] = { 1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 2, 4, 8 };
 
 /* NOTE: Array order conforms to `fang_ten_dtype_t` enum. */
@@ -83,12 +95,22 @@ _fang_cpu_accel_t _dense_rand[] = {
 _fang_cpu_accel_t _dense_sum[] = {
     _ACCEL_DENSE(sum)
 };
+_fang_cpu_accel_t _dense_gemm[] = {
+    /* Fill dummy accelerators as padding. */
+    _dummy_accel, _dummy_accel, _dummy_accel, _dummy_accel,
+    _dummy_accel, _dummy_accel, _dummy_accel, _dummy_accel,
+    _dummy_accel, _dummy_accel, _dummy_accel,
 
-/* To check difference in tensor randomizer. */
+    // TODO: Add more types
+    _fang_dense_accel_gemmf32
+};
+
+/* To check difference in tensor randomizer. `_of_ma` = overflow max. Used in
+   `_fang_env_cpu_dense_ops_rand`. */
 /* NOTE: Array conforms to `fang_ten_dtype_t` enum order. */
-fang_uint _of_ma[] = { INT8_MAX, INT16_MAX, INT32_MAX, INT64_MAX,
+fang_uint_t _of_ma[] = { INT8_MAX, INT16_MAX, INT32_MAX, INT64_MAX,
     UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX };  // Max
-fang_uint _of_mi[] = { INT8_MIN, INT16_MIN, INT32_MIN, INT64_MIN };  // Min
+fang_uint_t _of_mi[] = { INT8_MIN, INT16_MIN, INT32_MIN, INT64_MIN };  // Min
 
 /* ================ PRIVATE GLOBALS END ================ */
 
@@ -280,7 +302,7 @@ FANG_HOT static void _fang_ten_print_recurse(fang_buffer_t *restrict buff,
 
 /* Private macro of `_fang_env_cpu_ops_create`. */
 #define _DATACPY(ltype, rtype)                                         \
-for(size_t i = 0; i < size; i++)                                       \
+for(size_t i = 0; i < elems; i++)                                      \
     ((ltype *) ten->data.dense)[i] = (ltype) ((rtype *) arg->y)[i];
 
 /* Creates and initializes dense tensor data. */
@@ -292,8 +314,9 @@ int _fang_env_cpu_dense_ops_create(fang_ten_ops_arg_t *restrict arg) {
     fang_env_t *env = (fang_env_t *) arg->z;
 
     /* Calculate size in bytes based on tensor data type. */
-    size_t size = (ten->dims != NULL ? (size_t) FANG_G2U(arg->x) :
-        1 /* Scalar tensor. */) * dsiz[(int) ten->dtyp];
+    uint32_t elems = (ten->dims != NULL ? (size_t) FANG_G2U(arg->x) :
+        1 /* Scalar tensor. */);
+    size_t size = elems * dsiz[(int) ten->dtyp];
 
     /* Allocate memory to store tensor data. */
     ten->data.dense = FANG_CREATE(env->realloc, char, size);
@@ -309,64 +332,64 @@ int _fang_env_cpu_dense_ops_create(fang_ten_ops_arg_t *restrict arg) {
     } else {
         switch(ten->dtyp) {
             case FANG_TEN_DTYPE_INT8: {
-                _DATACPY(int8_t, fang_int);
+                _DATACPY(int8_t, fang_int_t);
             } break;
 
             case FANG_TEN_DTYPE_INT16: {
-                _DATACPY(int16_t, fang_int);
+                _DATACPY(int16_t, fang_int_t);
             } break;
 
             case FANG_TEN_DTYPE_INT32: {
-                _DATACPY(int32_t, fang_int);
+                _DATACPY(int32_t, fang_int_t);
             } break;
 
             case FANG_TEN_DTYPE_INT64: {
-                _DATACPY(int64_t, fang_int);
+                _DATACPY(int64_t, fang_int_t);
             } break;
 
             case FANG_TEN_DTYPE_UINT8: {
-                _DATACPY(uint8_t, fang_uint);
+                _DATACPY(uint8_t, fang_uint_t);
             } break;
 
             case FANG_TEN_DTYPE_UINT16: {
-                _DATACPY(uint16_t, fang_uint);
+                _DATACPY(uint16_t, fang_uint_t);
             } break;
 
             case FANG_TEN_DTYPE_UINT32: {
-                _DATACPY(uint32_t, fang_uint);
+                _DATACPY(uint32_t, fang_uint_t);
             } break;
 
             case FANG_TEN_DTYPE_UINT64: {
-                _DATACPY(uint64_t, fang_uint);
+                _DATACPY(uint64_t, fang_uint_t);
             } break;
 
             case FANG_TEN_DTYPE_FLOAT8: {
-                for(size_t i = 0; i < size; i++) {
+                for(size_t i = 0; i < elems; i++) {
                     ((_fang_float8_t *) ten->data.dense)[i] =
-                        _FANG_S2Q((float) ((fang_float *) arg->y)[i]);
+                        _FANG_S2Q((float) ((fang_float_t *) arg->y)[i]);
                 }
             } break;
 
             case FANG_TEN_DTYPE_FLOAT16: {
-                for(size_t i = 0; i < size; i++) {
+                for(size_t i = 0; i < elems; i++) {
                     ((_fang_float16_t *) ten->data.dense)[i] =
-                        _FANG_S2H((float) ((fang_float *) arg->y)[i]);
+                        _FANG_S2H((float) ((fang_float_t *) arg->y)[i]);
                 }
             } break;
 
             case FANG_TEN_DTYPE_BFLOAT16: {
-                for(size_t i = 0; i < size; i++) {
+                for(size_t i = 0; i < elems; i++) {
                     ((_fang_bfloat16_t *) ten->data.dense)[i] =
-                        _FANG_S2BH((float) ((fang_float *) arg->y)[i]);
+                        _FANG_S2BH((float) ((fang_float_t *) arg->y)[i]);
                 }
             } break;
 
             case FANG_TEN_DTYPE_FLOAT32: {
-                _DATACPY(float, fang_float);
+                _DATACPY(float, fang_float_t);
             } break;
 
             case FANG_TEN_DTYPE_FLOAT64: {
-                _DATACPY(double, fang_float);
+                _DATACPY(double, fang_float_t);
             } break;
 
             default: break;
@@ -404,7 +427,7 @@ int _fang_env_cpu_dense_ops_rand(fang_ten_ops_arg_t *restrict arg) {
     int res = FANG_OK;
 
     fang_ten_t *ten = (fang_ten_t *) arg->dest;
-    fang_gen diff, low = arg->x;
+    fang_gen_t diff, low = arg->x;
 
     if(FANG_LIKELY(ten->dtyp >= FANG_TEN_DTYPE_INT8 &&
         ten->dtyp <= FANG_TEN_DTYPE_INT64))
@@ -441,7 +464,7 @@ int _fang_env_cpu_dense_ops_rand(fang_ten_ops_arg_t *restrict arg) {
     } else diff = FANG_F2G(FANG_G2F(arg->y) - FANG_G2F(arg->x));
 
     _fang_cpu_accel_arg_t accel_arg = {
-        .dest = (fang_gen) ten,
+        .dest = (fang_gen_t) ten,
         .x = diff,
         .y = low,
         .z = arg->z  // seed
@@ -465,6 +488,25 @@ int _fang_env_cpu_dense_ops_sum(fang_ten_ops_arg_t *restrict arg) {
         .z = arg->z
     };
     _dense_sum[(int) dest->dtyp](&accel_arg);
+
+    return res;
+}
+
+/* Performs GEMM operation between two tensors (this sounds so cool!). */
+int _fang_env_cpu_dense_ops_gemm(fang_ten_ops_arg_t *restrict arg) {
+    int res = FANG_OK;
+
+    fang_ten_t *dest = (fang_ten_t *) arg->dest;
+
+    _fang_cpu_accel_arg_t accel_arg = {
+        .dest = arg->dest,
+        .x = arg->x,
+        .y = arg->y,
+        .z = arg->z,
+        .alpha = arg->alpha,
+        .beta = arg->beta
+    };
+    _dense_gemm[(int) dest->dtyp](&accel_arg);
 
     return res;
 }

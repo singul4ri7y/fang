@@ -124,7 +124,7 @@ void fang_ten_create_test(void **state) {
     for(int i = 0; i < size; i++)
         assert_float_equal(0.0, _FANG_H2S(fdata[i]), 1e-6);
 
-    fang_int input_data[size];
+    fang_int_t input_data[size];
     for(int i = 0; i < size; i++)
         input_data[i] = i - 3360;
 

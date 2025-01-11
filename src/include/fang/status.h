@@ -55,21 +55,21 @@
 /* Invalid tensor data type. */
 #define FANG_INVDTYP        204
 
-/* Cannot create thread/task. */
-#define FANG_NOTASK         205
-
-/* Cannot pin task kernel to a specific processor. */
-#define FANG_NOPIN          206
+/* Unsupported tensor data type. */
+#define FANG_UNSUPDTYP      205
 
 /* Difference overflow in tensor randomizer. Try reducing the range between low
    and high values. */
-#define FANG_RANDOF         207
+#define FANG_RANDOF         206
 
 /* Destination tensor dimension mismatch. */
-#define FANG_DESTINVDIM     208
+#define FANG_DESTINVDIM     207
 
 /* Tensors not broadcastable. */
-#define FANG_NOBROAD        209
+#define FANG_NOBROAD        218
+
+/* Incompatible matrix dimension in `fang_ten_gemm()`. */
+#define FANG_INCMATDIM      209
 
 /* ================ TENSOR END ================ */
 

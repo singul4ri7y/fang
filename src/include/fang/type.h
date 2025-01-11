@@ -20,7 +20,7 @@
 /* ================ TYPE DEFINITIONS ================ */
 
 /* NOTE: If tensor type is any of the floating types, any input data would be
- * considered `fang_float`.
+ * considered `fang_float_t`.
  *
  * If tensor type is any of the signed/unsigned integer types, the input data
  * would be cosidered `fang_(u)int`, depending on the signedness.
@@ -30,31 +30,31 @@
  */
 
 /* Most precised floating type Fang supports. */
-typedef double fang_float;
+typedef double fang_float_t;
 
 /* Largest integer type Fang supports. */
-typedef int64_t fang_int;
-typedef uint64_t fang_uint;
+typedef int64_t fang_int_t;
+typedef uint64_t fang_uint_t;
 
 /* Pointer has the size of a single general purpose register of a machine, thus
    being the largest data type machine can handle. */
 /* Any form of singular data can be represented through it, e.g. 32-bit
    float or pointer to a structure. Hence, pointer values can be thought
    of as an abstract generic data type. */
-typedef void *fang_gen;
+typedef void *fang_gen_t;
 
 /* ================ TYPE DEFINITIONS END ================ */
 
 
 /* ================ INLINE DEFINITIONS ================ */
 
-/* Ugly; stay happy and live a long life. */
-#define _FANG_TYPE_DEF(postfix, ityp, otyp)                               \
-FANG_HOT FANG_INLINE static inline                                        \
-    fang_##otyp fang_##postfix(fang_##ityp value)                         \
-{                                                                         \
-    union { fang_##ityp i; fang_##otyp o; } _u = { .i = value };          \
-    return _u.o;                                                          \
+/* Helper to make life easier. */
+#define _FANG_TYPE_DEF(postfix, ityp, otyp)                                 \
+FANG_HOT FANG_INLINE static inline                                          \
+    fang_##otyp##_t fang_##postfix(fang_##ityp##_t value)                   \
+{                                                                           \
+    union { fang_##ityp##_t i; fang_##otyp##_t o; } _u = { .i = value };    \
+    return _u.o;                                                            \
 }
 
 /* Converts float to generic data. */
