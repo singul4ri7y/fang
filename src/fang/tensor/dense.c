@@ -29,7 +29,7 @@ FANG_HOT FANG_INLINE static inline void
 /* Returns whether specific broadcasting type being used (fast-route). Check out
  * `tensor.h` for more info. */
 FANG_HOT FANG_INLINE static inline int _fang_ten_get_broadcast_pattern(
-    fang_ten_t *restrict pwx, fang_ten_t *restrict pwy)
+    fang_ten_t *restrict pwx, fang_ten_t *restrict pwy, int *swapped)
 {
     /* Broadcast dimension unknown. */
     int pattern = FANG_BCAST_UNKNOWN;
@@ -49,6 +49,9 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_get_broadcast_pattern(
             *pwx = temp;
 
             pwy_siz = pwx_siz;
+
+            /* Tensor got swapped. This may be relevant for subtraction. */
+            *swapped ^= 1;
         };
     }
 
@@ -58,12 +61,14 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_get_broadcast_pattern(
     /* Matrix against N-dimensional matrices. */
     /* `pwy` is a perfect matrix if first stride is equal to matrix
        size or last dimension. */
+    /* Multiplying `pwy->dims[0]` ensures leading dimensions are filled with
+       ones */
     else if(FANG_LIKELY(pwy->ndims >= 2 &&
         pwx->dims[pwx->ndims - 1] == pwy->dims[pwy->ndims - 1] &&
         pwx->dims[pwx->ndims - 2] == pwy->dims[pwy->ndims - 2] &&
        (pwy->strides[0] == pwy->dims[pwy->ndims - 1] ||
         pwy->strides[0] == pwy->dims[pwy->ndims - 1] *
-        pwy->dims[pwy->ndims - 2])))
+        pwy->dims[pwy->ndims - 2] * pwy->dims[0])))
     {
         pattern = FANG_BCAST_MATRIX;
     }
@@ -72,7 +77,8 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_get_broadcast_pattern(
        or 1. */
     else if(FANG_LIKELY(
         pwx->dims[pwx->ndims - 1] == pwy->dims[pwy->ndims - 1] &&
-       (pwy->strides[0] == 1 || pwy->strides[0] == pwy->dims[pwy->ndims - 1])))
+       (pwy->strides[0] == 1 || pwy->strides[0] == pwy->dims[pwy->ndims - 1] *
+        pwy->dims[0])))
     {
         pattern = FANG_BCAST_ROWVEC;
     }
@@ -81,7 +87,8 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_get_broadcast_pattern(
        equal to second last dimension or 1. */
     else if(FANG_LIKELY(pwy->ndims >= 2 && pwy->dims[pwy->ndims - 1] == 1 &&
         pwx->dims[pwx->ndims - 2] == pwy->dims[pwy->ndims - 2] &&
-       (pwy->strides[0] == 1 || pwy->strides[0] == pwy->dims[pwy->ndims - 2])))
+       (pwy->strides[0] == 1 || pwy->strides[0] == pwy->dims[pwy->ndims - 2] *
+        pwy->dims[0])))
     {
         pattern = FANG_BCAST_COLVEC;
     }
@@ -147,12 +154,14 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_gemm_get_broadcast_pattern(
     /* `pwy` is a perfect broadcastable matrix if first stride is equal to
        broadcastable matrix size of `pwx` or last dimension (excluding the
        actual matrix). */
+    /* Multiplying `pwy->dims[0]` ensures leading dimensions are filled with
+       one */
     else if(FANG_LIKELY(pwy->ndims >= 4 &&
         pwx->dims[pwx->ndims - 3] == pwy->dims[pwy->ndims - 3] &&
         pwx->dims[pwx->ndims - 4] == pwy->dims[pwy->ndims - 4] &&
        (pwy_first_stride == pwy->dims[pwy->ndims - 3] ||
         pwy_first_stride == pwy->dims[pwy->ndims - 3] *
-        pwy->dims[pwy->ndims - 4])))
+        pwy->dims[pwy->ndims - 4] * pwy->dims[0])))
     {
         pattern = FANG_BCAST_MATRIX;
     }
@@ -162,7 +171,7 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_gemm_get_broadcast_pattern(
     else if(FANG_LIKELY(
         pwx->dims[pwx->ndims - 3] == pwy->dims[pwy->ndims - 3] &&
        (pwy_first_stride == 1 || pwy_first_stride ==
-        pwy->dims[pwy->ndims - 3])))
+        pwy->dims[pwy->ndims - 3] * pwy->dims[0])))
     {
         pattern = FANG_BCAST_ROWVEC;
     }
@@ -172,7 +181,7 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_gemm_get_broadcast_pattern(
     else if(FANG_LIKELY(pwy->ndims >= 4 && pwy->dims[pwy->ndims - 3] == 1 &&
         pwx->dims[pwx->ndims - 4] == pwy->dims[pwy->ndims - 4] &&
        (pwy_first_stride == 1 || pwy_first_stride ==
-        pwy->dims[pwy->ndims - 4])))
+        pwy->dims[pwy->ndims - 4] * pwy->dims[0])))
     {
         pattern = FANG_BCAST_COLVEC;
     }
@@ -398,187 +407,209 @@ out:
     return res;
 }
 
-/* Adds two tensor. */
-int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x, fang_ten_t *y) {
-    int res = FANG_OK;
-
-    /* Tensors have to belong to same Environment. */
-    if(FANG_UNLIKELY(dest->eid != x->eid || x->eid != y->eid)) {
-        res = -FANG_ENVNOMATCH;
-        goto out;
-    }
-
-    /* Tensors have to have same data type. */
-    if(FANG_UNLIKELY(dest->dtyp != x->dtyp || x->dtyp != y->dtyp)) {
-        res = -FANG_INVDTYP;
-        goto out;
-    }
-
-    /* Get Environment. */
-    fang_env_t *env;
-    if(FANG_UNLIKELY(!FANG_ISOK(res = _fang_env_retrieve(&env, x->eid))))
-        goto out;
-
+/* Tensor arithmatic macro. Use this macro to instantiate any arithmatic related
+   tensor operation routine. */
+#define FANG_TENSOR_ARITH(operator)                                             \
+int fang_ten_##operator(fang_ten_t *dest, fang_ten_t *x, fang_ten_t *y) {       \
+    int res = FANG_OK;                                                          \
+                                                                                \
+    /* Tensors have to belong to same Environment. */                           \
+    if(FANG_UNLIKELY(dest->eid != x->eid || x->eid != y->eid)) {                \
+        res = -FANG_ENVNOMATCH;                                                 \
+        goto out;                                                               \
+    }                                                                           \
+                                                                                \
+    /* Tensors have to have same data type. */                                  \
+    if(FANG_UNLIKELY(dest->dtyp != x->dtyp || x->dtyp != y->dtyp)) {            \
+        res = -FANG_INVDTYP;                                                    \
+        goto out;                                                               \
+    }                                                                           \
+                                                                                \
+    /* Get Environment. */                                                      \
+    fang_env_t *env;                                                            \
+    if(FANG_UNLIKELY(!FANG_ISOK(res = _fang_env_retrieve(&env, x->eid))))       \
+        goto out;                                                               \
+                                                                                \
     /* There are chances of strides and dimension changes during
-       broadcasting. */
-    fang_ten_t wx = *x, wy = *y;
-
-    /* Handle scalar tensors. */
-    wx.dims = wx.dims == NULL ? (uint32_t []) { 1 } : wx.dims;
-    wy.dims = wy.dims == NULL ? (uint32_t []) { 1 } : wy.dims;
-    wx.strides = wx.strides == NULL ? (uint32_t []) { 1 } : wx.strides;
-    wy.strides = wy.strides == NULL ? (uint32_t []) { 1 } : wy.strides;
-
-    /* Argument structure. */
-    fang_ten_ops_arg_t arg = {
-        .dest = (fang_gen_t) dest,
-        .x = (fang_gen_t) &wx,
-        .y = (fang_gen_t) &wy
-    };
-
-    /* Tensors with same dimension may be batched or broadcasted. */
-    if(FANG_LIKELY(x->ndims == y->ndims)) {
-        /* Check if tensor operation should be batched. */
-        if(FANG_LIKELY(!memcmp(x->dims, y->dims, x->ndims *
-            sizeof(*x->dims))))
-        {
-            /* Check if destination tensor is valid to store result. */
-            if(FANG_UNLIKELY(dest->ndims != x->ndims ||
-                memcmp(dest->dims, x->dims, x->ndims * sizeof(*x->dims))))
-            {
-                res = -FANG_DESTINVDIM;
-                goto out;
-            }
-
-            /* No need for broadcasting. */
-            arg.z = FANG_I2G(FANG_NO_BCAST);
-            res = env->ops->dense->sum(&arg);
-        } else {
-            /* Check if tensors are broadcastable, if not batched. */
-            for(int i = 0; i < x->ndims; i++) {
-                uint32_t xdim = x->dims[i];
-                uint32_t ydim = y->dims[i];
-
-                /* Not broadcastable. */
-                if(FANG_UNLIKELY(xdim != ydim && xdim != 1 && ydim != 1)) {
-                    res = -FANG_NOBROAD;
-                    goto out;
-                }
-            }
-
-            /* Check if destination tensor is valid to store result. */
-            if(FANG_UNLIKELY(dest->ndims != x->ndims)) {
-                res = -FANG_DESTINVDIM;
-                goto out;
-            }
-            for(int i = 0; i < x->ndims; i++) {
-                if(FANG_UNLIKELY(dest->dims[i] !=
-                    _FANG_MAX(x->dims[i], y->dims[i])))
-                {
-                    res = -FANG_DESTINVDIM;
-                    goto out;
-                }
-            }
-
-            /* Calculate the broadcasted strides. */
-            uint32_t x_broadcasted_strides[x->ndims];
-            uint32_t y_broadcasted_strides[y->ndims];
-            int pattern = _fang_ten_get_broadcast_pattern(&wx, &wy);
-
-            /* No fast route has been found. */
-            if(FANG_UNLIKELY(pattern == FANG_BCAST_UNKNOWN)) {
-                /* Pre-compute broadcasted strides. */
-                for(int i = 0; i < wx.ndims; i++) {
-                    uint32_t xdim = wx.dims[i], ydim = wy.dims[i];
-
-                    x_broadcasted_strides[i] = xdim != 1 ? wx.strides[i] : 0;
-                    y_broadcasted_strides[i] = ydim != 1 ? wy.strides[i] : 0;
-                }
-
-                /* Change strides to broadcasted strides. */
-                wx.strides = x_broadcasted_strides;
-                wy.strides = y_broadcasted_strides;
-            }
-
-            arg.z = FANG_I2G(pattern);
-            res = env->ops->dense->sum(&arg);
-        }
-    } else {
-        /* Classify tensors based on max/min dimension count. */
-        int dmax = _FANG_MAX(wx.ndims, wy.ndims),
-            dmin = _FANG_MIN(wx.ndims, wy.ndims);
-        int diff = dmax - dmin;
-
-        /* Ensure `wx` always holds tensor with maximum dimension count. */
-        if(FANG_UNLIKELY(wx.ndims < wy.ndims)) {
-            fang_ten_t temp = wy;
-            wy = wx;
-            wx = temp;
-        }
-
-        /* Check if tensors are broadcastable. */
-        for(int i = 0; i < dmin; i++) {
-            uint32_t wxdim = wx.dims[i + diff];
-            uint32_t wydim = wy.dims[i];
-
-            /* Not broadcastable. */
-            if(FANG_UNLIKELY(wxdim != wydim && wxdim != 1 && wydim != 1)) {
-                res = -FANG_NOBROAD;
-                goto out;
-            }
-        }
-
-        /* Check if destination tensor is valid to store result. */
-        if(FANG_UNLIKELY(dest->ndims != dmax)) {
-            res = -FANG_DESTINVDIM;
-            goto out;
-        }
-        for(int i = 0; i < diff; i++) {
-            if(FANG_UNLIKELY(dest->dims[i] != wx.dims[i])) {
-                res = -FANG_DESTINVDIM;
-                goto out;
-            }
-        }
-        for(int i = 0; i < dmin; i++) {
-            if(FANG_UNLIKELY(dest->dims[i + diff] !=
-                _FANG_MAX(wx.dims[i + diff], wy.dims[i])))
-            {
-                res = -FANG_DESTINVDIM;
-                goto out;
-            }
-        }
-
-        int pattern = _fang_ten_get_broadcast_pattern(&wx, &wy);
-        uint32_t x_broadcasted_strides[dmax];
-        uint32_t y_broadcasted_strides[dmax];
-
-        /* No fast route has been found. */
-        if(FANG_UNLIKELY(pattern == FANG_BCAST_UNKNOWN)) {
-            /* Calculate broadcasted strides. */
-            for(int i = 0; i < dmax; i++) {
-                x_broadcasted_strides[i] = wx.dims[i] != 1 ? wx.strides[i] : 0;
-                y_broadcasted_strides[i] = i - diff < 0 ? 0 :
-                    (wy.dims[i - diff] != 1 ? wy.strides[i - diff] : 0);
-            }
-
-            wx.strides = x_broadcasted_strides;
-            wy.strides = y_broadcasted_strides;
-        }
-
-        arg.z = FANG_I2G(pattern);
-        res = env->ops->dense->sum(&arg);
-    }
-
-out:
-    return res;
+       broadcasting. */                                                         \
+    fang_ten_t wx = *x, wy = *y;                                                \
+                                                                                \
+    /* Handle scalar tensors. */                                                \
+    wx.dims = wx.dims == NULL ? (uint32_t []) { 1 } : wx.dims;                  \
+    wy.dims = wy.dims == NULL ? (uint32_t []) { 1 } : wy.dims;                  \
+    wx.strides = wx.strides == NULL ? (uint32_t []) { 1 } : wx.strides;         \
+    wy.strides = wy.strides == NULL ? (uint32_t []) { 1 } : wy.strides;         \
+                                                                                \
+    /* Argument structure. */                                                   \
+    fang_ten_ops_arg_t arg = {                                                  \
+        .dest = (fang_gen_t) dest,                                              \
+        .x = (fang_gen_t) &wx,                                                  \
+        .y = (fang_gen_t) &wy                                                   \
+    };                                                                          \
+                                                                                \
+    /* Did the tensor got swapped? This information may be relevant for
+       operations that are not commutative (e.g. subtraction, division) */      \
+    int swapped = 0;                                                            \
+                                                                                \
+    /* Tensors with same dimension may be batched or broadcasted. */            \
+    if(FANG_LIKELY(x->ndims == y->ndims)) {                                     \
+        /* Check if tensor operation should be batched. */                      \
+        if(FANG_LIKELY(!memcmp(x->dims, y->dims, x->ndims *                     \
+            sizeof(*x->dims))))                                                 \
+        {                                                                       \
+            /* Check if destination tensor is valid to store result. */         \
+            if(FANG_UNLIKELY(dest->ndims != x->ndims ||                         \
+                memcmp(dest->dims, x->dims, x->ndims * sizeof(*x->dims))))      \
+            {                                                                   \
+                res = -FANG_DESTINVDIM;                                         \
+                goto out;                                                       \
+            }                                                                   \
+                                                                                \
+            /* No need for broadcasting. */                                     \
+            arg.z = FANG_I2G(FANG_NO_BCAST);                                    \
+            res = env->ops->dense->operator(&arg);                              \
+        } else {                                                                \
+            /* Check if tensors are broadcastable, if not batched. */           \
+            for(int i = 0; i < x->ndims; i++) {                                 \
+                uint32_t xdim = x->dims[i];                                     \
+                uint32_t ydim = y->dims[i];                                     \
+                                                                                \
+                /* Not broadcastable. */                                        \
+                if(FANG_UNLIKELY(xdim != ydim && xdim != 1 && ydim != 1)) {     \
+                    res = -FANG_NOBROAD;                                        \
+                    goto out;                                                   \
+                }                                                               \
+            }                                                                   \
+                                                                                \
+            /* Check if destination tensor is valid to store result. */         \
+            if(FANG_UNLIKELY(dest->ndims != x->ndims)) {                        \
+                res = -FANG_DESTINVDIM;                                         \
+                goto out;                                                       \
+            }                                                                   \
+            for(int i = 0; i < x->ndims; i++) {                                 \
+                if(FANG_UNLIKELY(dest->dims[i] !=                               \
+                    _FANG_MAX(x->dims[i], y->dims[i])))                         \
+                {                                                               \
+                    res = -FANG_DESTINVDIM;                                     \
+                    goto out;                                                   \
+                }                                                               \
+            }                                                                   \
+                                                                                \
+            /* Calculate the broadcasted strides. */                            \
+            uint32_t x_broadcasted_strides[x->ndims];                           \
+            uint32_t y_broadcasted_strides[y->ndims];                           \
+            int pattern = _fang_ten_get_broadcast_pattern(&wx, &wy,             \
+                &swapped);                                                      \
+                                                                                \
+            /* No fast route has been found. */                                 \
+            if(FANG_UNLIKELY(pattern == FANG_BCAST_UNKNOWN)) {                  \
+                /* Pre-compute broadcasted strides. */                          \
+                for(int i = 0; i < wx.ndims; i++) {                             \
+                    uint32_t xdim = wx.dims[i], ydim = wy.dims[i];              \
+                                                                                \
+                    x_broadcasted_strides[i] = xdim != 1 ?                      \
+                        wx.strides[i] : 0;                                      \
+                    y_broadcasted_strides[i] = ydim != 1 ?                      \
+                        wy.strides[i] : 0;                                      \
+                }                                                               \
+                                                                                \
+                /* Change strides to broadcasted strides. */                    \
+                wx.strides = x_broadcasted_strides;                             \
+                wy.strides = y_broadcasted_strides;                             \
+            }                                                                   \
+                                                                                \
+            arg.z = FANG_I2G((swapped << 0x08) | (uint8_t) pattern);            \
+            res = env->ops->dense->operator(&arg);                              \
+        }                                                                       \
+    } else {                                                                    \
+        /* Classify tensors based on max/min dimension count. */                \
+        int dmax = _FANG_MAX(wx.ndims, wy.ndims),                               \
+            dmin = _FANG_MIN(wx.ndims, wy.ndims);                               \
+        int diff = dmax - dmin;                                                 \
+                                                                                \
+        /* Ensure `wx` always holds tensor with maximum dimension count. */     \
+        if(FANG_UNLIKELY(wx.ndims < wy.ndims)) {                                \
+            fang_ten_t temp = wy;                                               \
+            wy = wx;                                                            \
+            wx = temp;                                                          \
+                                                                                \
+            /* Tensors got swapped. */                                          \
+            swapped ^= 1;                                                       \
+        }                                                                       \
+                                                                                \
+        /* Check if tensors are broadcastable. */                               \
+        for(int i = 0; i < dmin; i++) {                                         \
+            uint32_t wxdim = wx.dims[i + diff];                                 \
+            uint32_t wydim = wy.dims[i];                                        \
+                                                                                \
+            /* Not broadcastable. */                                            \
+            if(FANG_UNLIKELY(wxdim != wydim && wxdim != 1 && wydim != 1)) {     \
+                res = -FANG_NOBROAD;                                            \
+                goto out;                                                       \
+            }                                                                   \
+        }                                                                       \
+                                                                                \
+        /* Check if destination tensor is valid to store result. */             \
+        if(FANG_UNLIKELY(dest->ndims != dmax)) {                                \
+            res = -FANG_DESTINVDIM;                                             \
+            goto out;                                                           \
+        }                                                                       \
+        for(int i = 0; i < diff; i++) {                                         \
+            if(FANG_UNLIKELY(dest->dims[i] != wx.dims[i])) {                    \
+                res = -FANG_DESTINVDIM;                                         \
+                goto out;                                                       \
+            }                                                                   \
+        }                                                                       \
+        for(int i = 0; i < dmin; i++) {                                         \
+            if(FANG_UNLIKELY(dest->dims[i + diff] !=                            \
+                _FANG_MAX(wx.dims[i + diff], wy.dims[i])))                      \
+            {                                                                   \
+                res = -FANG_DESTINVDIM;                                         \
+                goto out;                                                       \
+            }                                                                   \
+        }                                                                       \
+                                                                                \
+        int pattern = _fang_ten_get_broadcast_pattern(&wx, &wy, &swapped);      \
+        uint32_t x_broadcasted_strides[dmax];                                   \
+        uint32_t y_broadcasted_strides[dmax];                                   \
+                                                                                \
+        /* No fast route has been found. */                                     \
+        if(FANG_UNLIKELY(pattern == FANG_BCAST_UNKNOWN)) {                      \
+            /* Calculate broadcasted strides. */                                \
+            for(int i = 0; i < dmax; i++) {                                     \
+                x_broadcasted_strides[i] = wx.dims[i] != 1 ?                    \
+                    wx.strides[i] : 0;                                          \
+                y_broadcasted_strides[i] = i - diff < 0 ? 0 :                   \
+                    (wy.dims[i - diff] != 1 ? wy.strides[i - diff] : 0);        \
+            }                                                                   \
+                                                                                \
+            wx.strides = x_broadcasted_strides;                                 \
+            wy.strides = y_broadcasted_strides;                                 \
+        }                                                                       \
+                                                                                \
+        arg.z = FANG_I2G((swapped << 0x08) | (uint8_t) pattern);                \
+        res = env->ops->dense->operator(&arg);                                  \
+    }                                                                           \
+                                                                                \
+out:                                                                            \
+    return res;                                                                 \
 }
+
+/* Adds two tensor. */
+FANG_TENSOR_ARITH(sum)
+
+/* Subtracts two tensor. */
+FANG_TENSOR_ARITH(diff)
+
+/* Multiplies two tensor. */
+FANG_TENSOR_ARITH(mul)
 
 /* Performs General Matrix-Matrix Multiply (GEMM) operation on two trailing
    dimension. */
 /* dest := alpha * xy + beta * dest */
 int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
-    fang_ten_gemm_transp_t transp_y, fang_gen_t beta, fang_ten_t *restrict dest,
-    fang_gen_t alpha, fang_ten_t *restrict x, fang_ten_t *restrict y)
+    fang_ten_gemm_transp_t transp_y, fang_gen_t beta, fang_ten_t *dest,
+    fang_gen_t alpha, fang_ten_t *x, fang_ten_t *y)
 {
     int res = FANG_OK;
 

@@ -106,7 +106,8 @@ _ACCEL_RANDF(f64, double, double,)
     type *data_y     = FANG_ASSUME_ALIGNED(y->data.dense, 64);                 \
     int size         = dest->dims == NULL ? 1 :                                \
         (int) dest->strides[0] * dest->dims[0];                                \
-    int broadcast    = (int) FANG_G2I(arg->z);                                 \
+    int swapb_mask   = (int) FANG_G2I(arg->z);                                 \
+    int broadcast    = swapb_mask & 0xFF;                                      \
     int vsiz         = 0;  /* Vector size */                                   \
     if(FANG_LIKELY(broadcast == FANG_BCAST_ROWVEC))                            \
         vsiz = y->dims[y->ndims - 1];                                          \
@@ -189,6 +190,132 @@ _ACCEL_ARITHMATIC(sumf32, float, +,,)
 _ACCEL_ARITHMATIC(sumf64, double, +,,)
 
 /* ======== SUM END ======== */
+
+/* ======== DIFF ======== */
+
+#define _ACCEL_DIFF(postfix, type, conv_a2b, conv_b2a)                         \
+FANG_HOT FANG_FLATTEN static void                                              \
+    _fang_dense_accel_##postfix(_fang_cpu_accel_arg_t *restrict arg)           \
+{                                                                              \
+    _ACCEL_ARITH_PROLOGUE(type);                                               \
+                                                                               \
+    /* Tensor may got swapped to help with broadcasting. */                    \
+    int swapped = (swapb_mask >> 0x08) & 0x01;                                 \
+                                                                               \
+    /* Scalar tensor operation against N-dimensional tensor. */                \
+    if(FANG_LIKELY(broadcast == FANG_BCAST_SCALAR)) {                          \
+        if(FANG_UNLIKELY(swapped)) {                                           \
+            for(int i = 0; i < size; i++)                                      \
+                data_dest[i] = conv_b2a(conv_a2b(data_y[0]) -                  \
+                    conv_a2b(data_x[i]));                                      \
+        } else {                                                               \
+            for(int i = 0; i < size; i++)                                      \
+                data_dest[i] = conv_b2a(conv_a2b(data_x[i]) -                  \
+                    conv_a2b(data_y[0]));                                      \
+        }                                                                      \
+    }                                                                          \
+    /* Row-major vector/matrix operation against N-dimensional tensor. */      \
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_ROWVEC ||                      \
+        broadcast == FANG_BCAST_MATRIX))                                       \
+    {                                                                          \
+        if(FANG_UNLIKELY(swapped)) {                                           \
+            for(int i = 0; i < size; i += vsiz) {                              \
+                for(int j = 0; j < vsiz; j++)                                  \
+                    data_dest[i + j] = conv_b2a(conv_a2b(data_y[j]) -          \
+                        conv_a2b(data_x[i + j]));                              \
+            }                                                                  \
+        } else {                                                               \
+            for(int i = 0; i < size; i += vsiz) {                              \
+                for(int j = 0; j < vsiz; j++)                                  \
+                    data_dest[i + j] = conv_b2a(conv_a2b(data_x[i + j]) -      \
+                        conv_a2b(data_y[j]));                                  \
+            }                                                                  \
+        }                                                                      \
+    }                                                                          \
+    /* Col-major vector operation against N-dimensional tensor. */             \
+    else if(FANG_LIKELY(broadcast == FANG_BCAST_COLVEC)) {                     \
+        int xvsiz = x->dims[x->ndims - 1];                                     \
+        int skip = xvsiz * vsiz;                                               \
+                                                                               \
+        if(FANG_UNLIKELY(swapped)) {                                           \
+            for(int i = 0; i < size; i += skip) {                              \
+                for(int j = 0, idx = 0; j < skip; j += xvsiz, idx++) {         \
+                    for(int k = 0; k < xvsiz; k++)                             \
+                        data_dest[i + j + k] =                                 \
+                            conv_b2a(conv_a2b(data_y[idx]) -                   \
+                            conv_a2b(data_x[i + j + k]));                      \
+                }                                                              \
+            }                                                                  \
+        } else {                                                               \
+            for(int i = 0; i < size; i += skip) {                              \
+                for(int j = 0, idx = 0; j < skip; j += xvsiz, idx++) {         \
+                    for(int k = 0; k < xvsiz; k++)                             \
+                        data_dest[i + j + k] =                                 \
+                            conv_b2a(conv_a2b(data_x[i + j + k]) -             \
+                            conv_a2b(data_y[idx]));                            \
+                }                                                              \
+            }                                                                  \
+        }                                                                      \
+    }                                                                          \
+    /* Broadcast dimension unknown. */                                         \
+    else if(FANG_UNLIKELY(broadcast == FANG_BCAST_UNKNOWN)) {                  \
+        if(FANG_UNLIKELY(swapped)) {                                           \
+            for(int i = 0; i < size; i++) {                                    \
+                int idx_x, idx_y;                                              \
+                /* Get broadcasted flattened index for x and y. */             \
+                _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,       \
+                    x->strides, y->strides, x->ndims);                         \
+                data_dest[i] = conv_b2a(conv_a2b(data_y[idx_y]) -              \
+                    conv_a2b(data_x[idx_x]));                                  \
+            }                                                                  \
+        } else {                                                               \
+            for(int i = 0; i < size; i++) {                                    \
+                int idx_x, idx_y;                                              \
+                /* Get broadcasted flattened index for x and y. */             \
+                _fang_get_original_idx(i, &idx_x, &idx_y, dest->strides,       \
+                    x->strides, y->strides, x->ndims);                         \
+                data_dest[i] = conv_b2a(conv_a2b(data_x[idx_x]) -              \
+                    conv_a2b(data_y[idx_y]));                                  \
+            }                                                                  \
+        }                                                                      \
+    } else {                                                                   \
+        for(int i = 0; i < size; i++)                                          \
+            data_dest[i] = conv_b2a(conv_a2b(data_x[i]) -                      \
+                conv_a2b(data_y[i]));                                          \
+    }                                                                          \
+}
+
+/* Integer types. */
+_ACCEL_DIFF(diffi8, int8_t,,)
+_ACCEL_DIFF(diffi16, int16_t,,)
+_ACCEL_DIFF(diffi32, int32_t,,)
+_ACCEL_DIFF(diffi64, int64_t,,)
+
+/* Floating point types. */
+_ACCEL_DIFF(difff8, _fang_float8_t, _FANG_Q2S, _FANG_S2Q)
+_ACCEL_DIFF(difff16, _fang_float16_t, _FANG_H2S, _FANG_S2H)
+_ACCEL_DIFF(diffbf16, _fang_bfloat16_t, _FANG_BH2S, _FANG_S2BH)
+_ACCEL_DIFF(difff32, float,,)
+_ACCEL_DIFF(difff64, double,,)
+
+/* ======== DIFF END ======== */
+
+/* ======== MUL ======== */
+
+/* Integer types. */
+_ACCEL_ARITHMATIC(muli8, int8_t, *,,)
+_ACCEL_ARITHMATIC(muli16, int16_t, *,,)
+_ACCEL_ARITHMATIC(muli32, int32_t, *,,)
+_ACCEL_ARITHMATIC(muli64, int64_t, *,,)
+
+/* Floating point types. */
+_ACCEL_ARITHMATIC(mulf8, _fang_float8_t, *, _FANG_Q2S, _FANG_S2Q)
+_ACCEL_ARITHMATIC(mulf16, _fang_float16_t, *, _FANG_H2S, _FANG_S2H)
+_ACCEL_ARITHMATIC(mulbf16, _fang_bfloat16_t, *, _FANG_BH2S, _FANG_S2BH)
+_ACCEL_ARITHMATIC(mulf32, float, *,,)
+_ACCEL_ARITHMATIC(mulf64, double, *,,)
+
+/* ======== MUL END ======== */
 
 /* ======== GEMM ======== */
 

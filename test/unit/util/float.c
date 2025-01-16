@@ -25,42 +25,42 @@ assert_int_equal(_ux.u32, _uy.u32); }
 /* Test 8-bit IEEE-754 compatible float software acceleration. */
 static void fang_float8_test(void **state) {
     /* Zero. */
-    ASSERT_FLOAT16(0.0);
+    ASSERT_FLOAT8(0.0);
 
     /* Negative zero. */
-    ASSERT_FLOAT16(-0.0);
+    ASSERT_FLOAT8(-0.0);
 
     /* Smallest subnormal number. */
-    ASSERT_FLOAT16(0.001953125);
-    ASSERT_FLOAT16(-0.001953125);
+    ASSERT_FLOAT8(0.001953125);
+    ASSERT_FLOAT8(-0.001953125);
 
     /* Largest subnormal number. */
-    ASSERT_FLOAT16(0.013671875);
-    ASSERT_FLOAT16(-0.013671875);
+    ASSERT_FLOAT8(0.013671875);
+    ASSERT_FLOAT8(-0.013671875);
 
     /* Smallest normal number. */
-    ASSERT_FLOAT16(0.015625);
-    ASSERT_FLOAT16(-0.015625);
+    ASSERT_FLOAT8(0.015625);
+    ASSERT_FLOAT8(-0.015625);
 
     /* Nearest value to 1/3. */
-    ASSERT_FLOAT16(0.3125);
-    ASSERT_FLOAT16(-0.3125);
+    ASSERT_FLOAT8(0.3125);
+    ASSERT_FLOAT8(-0.3125);
 
     /* Largest number smaller than 1. */
-    ASSERT_FLOAT16(0.9375);
-    ASSERT_FLOAT16(-0.9375);
+    ASSERT_FLOAT8(0.9375);
+    ASSERT_FLOAT8(-0.9375);
 
     /* One. */
-    ASSERT_FLOAT16(1.0);
-    ASSERT_FLOAT16(-1.0);
+    ASSERT_FLOAT8(1.0);
+    ASSERT_FLOAT8(-1.0);
 
     /* Smallest number larger than one. */
-    ASSERT_FLOAT16(1.125);
-    ASSERT_FLOAT16(-1.125);
+    ASSERT_FLOAT8(1.125);
+    ASSERT_FLOAT8(-1.125);
 
     /* Largest number representable. */
-    ASSERT_FLOAT16(240.0);
-    ASSERT_FLOAT16(-240.0);
+    ASSERT_FLOAT8(240.0);
+    ASSERT_FLOAT8(-240.0);
 
     /* ==== Test overflow: infinity and NaN ==== */
 

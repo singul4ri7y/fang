@@ -208,7 +208,7 @@ FANG_HOT void _fang_sgemm_6x16_ukernel(int k, float beta, float *restrict dest,
           _fang_inop(y, m),
           _fang_inop(one, m)
         : "rax", "rbx", "rcx", "rdx", "rdi", "r8", "r9", "r10", "r11", "r12",
-          "r13", "r14", "r15", "xmm0", "xmm1", "memory"
+          "r13", "r14", "r15", "xmm0", "xmm1", "xmm12", "xmm13", "xmm15", "memory"
     );
 }
 

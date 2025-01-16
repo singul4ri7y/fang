@@ -31,7 +31,7 @@ jobs:
 
         - name: Configure CMake
           working-directory: ./build
-          run: cmake -G Ninja .. -DUNIT_TESTING=ON -DFULL_TESTING=ON
+          run: cmake -G Ninja .. -DMARCH=native -DGEMM_CPU_TARGET=haswell -DUNIT_TESTING=ON -DFULL_TESTING=ON
 
         - name: Build
           working-directory: ./build

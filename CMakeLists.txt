@@ -191,11 +191,12 @@ function(add_fang_test TEST_SOURCE TEST_OUTPUT_DIR)
     set_target_properties(${TEST_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}")
 
-    # Enable Address Sanitizer to detect memory errors
+    # Enable Address Sanitizer and silent unused parameter error
     if(MSVC)
         # Remove complaints about "unused parameter `void **state`" with
         # `/wd4100` flag
-        target_compile_options(${TEST_NAME} PRIVATE /fsanitize=address)
+        target_compile_options(${TEST_NAME} PRIVATE /fsanitize=address /wd4100)
+        target_link_options(${TEST_NAME} PRIVATE /fsanitize=address)
     else()
         target_compile_options(${TEST_NAME} PRIVATE -fsanitize=address
             -Wno-unused-parameter)

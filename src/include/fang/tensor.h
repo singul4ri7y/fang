@@ -145,6 +145,8 @@ typedef struct fang_ten_ops {
     fang_ten_operator_fn print;
     fang_ten_operator_fn rand;
     fang_ten_operator_fn sum;
+    fang_ten_operator_fn diff;
+    fang_ten_operator_fn mul;
     fang_ten_operator_fn gemm;
     fang_ten_operator_fn release;
 } fang_ten_ops_t;
@@ -182,12 +184,20 @@ FANG_API int fang_ten_rand(fang_ten_t *ten, fang_gen_t low, fang_gen_t high,
 FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
     fang_ten_t *y);
 
+/* Subtracts two tensor. */
+FANG_API FANG_HOT int fang_ten_diff(fang_ten_t *dest, fang_ten_t *x,
+    fang_ten_t *y);
+
+/* Multiplies two tensor. */
+FANG_API FANG_HOT int fang_ten_mul(fang_ten_t *dest, fang_ten_t *x,
+    fang_ten_t *y);
+
 /* Performs General Matrix-Matrix Multiply (GEMM) operation on two trailing
    dimension. */
 /* dest := alpha * xy + beta * dest */
 FANG_API FANG_HOT int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
-    fang_ten_gemm_transp_t transp_y, fang_gen_t beta, fang_ten_t *restrict dest,
-    fang_gen_t alpha, fang_ten_t *restrict x, fang_ten_t *restrict y);
+    fang_ten_gemm_transp_t transp_y, fang_gen_t beta, fang_ten_t * dest,
+    fang_gen_t alpha, fang_ten_t *x, fang_ten_t *y);
 
 // TODO: Add fang_ten_fma (Fuse Multiply-Add) using FMA extension
 
@@ -195,5 +205,20 @@ FANG_API FANG_HOT int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
 FANG_API FANG_HOT int fang_ten_release(fang_ten_t *ten);
 
 /* ================ DECLARATIONS END ================ */
+
+
+/* ================ INLINE DEFINITIONS ================ */
+
+/* Performs matrix-multiplication between two tensors. It's just a wrapper
+ * around `fang_ten_gemm()`, which is much more genralized. */
+FANG_HOT FANG_INLINE static inline int fang_ten_matmul(fang_ten_t *dest,
+    fang_ten_t *x, fang_ten_t *y)
+{
+    return fang_ten_gemm(FANG_TEN_GEMM_NO_TRANSPOSE, FANG_TEN_GEMM_NO_TRANSPOSE,
+        FANG_F2G(0.0f), dest, FANG_F2G(1.0f), x, y);
+}
+
+/* ================ INLINE DEFINITIONS END ================ */
+
 
 #endif  // FANG_TENSOR_H

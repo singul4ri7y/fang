@@ -37,29 +37,34 @@ static void _dummy_accel(FANG_UNUSED _fang_cpu_accel_arg_t *restrict arg) {}
 
 /* ================ FORWARD DECLARATIONS ================ */
 
-/* Creates and initializes dense tensor data. */
-FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_create(
+/* CPU operation declarations. */
+#define _FANG_ENV_CPU_DENSE_OPS_DECL(operator)                             \
+FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_##operator(       \
     fang_ten_ops_arg_t *restrict arg);
+
+/* Creates and initializes dense tensor data. */
+_FANG_ENV_CPU_DENSE_OPS_DECL(create)
 
 /* Prints a dense tensor to a buffer. */
-FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_print(
-    fang_ten_ops_arg_t *restrict arg);
+_FANG_ENV_CPU_DENSE_OPS_DECL(print)
 
 /* Fills a tensor with random numbers. */
-FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_rand(
-    fang_ten_ops_arg_t *restrict arg);
+_FANG_ENV_CPU_DENSE_OPS_DECL(rand)
 
 /* Adds two tensors. */
-FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_sum(
-    fang_ten_ops_arg_t *restrict arg);
+_FANG_ENV_CPU_DENSE_OPS_DECL(sum)
+
+/* Subtracts two tensors. */
+_FANG_ENV_CPU_DENSE_OPS_DECL(diff)
+
+/* Multiplies two tensors. */
+_FANG_ENV_CPU_DENSE_OPS_DECL(mul)
 
 /* Performs GEMM operation between two tensors (this sounds so cool!). */
-FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_gemm(
-        fang_ten_ops_arg_t *restrict arg);
+_FANG_ENV_CPU_DENSE_OPS_DECL(gemm)
 
 /* Releases a dense tensor. */
-FANG_HOT FANG_FLATTEN static int _fang_env_cpu_dense_ops_release(
-    fang_ten_ops_arg_t *restrict arg);
+_FANG_ENV_CPU_DENSE_OPS_DECL(release)
 
 /* ================ FORWARD DECLARATIONS END ================ */
 
@@ -72,6 +77,8 @@ static fang_ten_ops_t _dense = {
     .print = _fang_env_cpu_dense_ops_print,
     .rand = _fang_env_cpu_dense_ops_rand,
     .sum = _fang_env_cpu_dense_ops_sum,
+    .diff = _fang_env_cpu_dense_ops_diff,
+    .mul = _fang_env_cpu_dense_ops_mul,
     .gemm = _fang_env_cpu_dense_ops_gemm,
     .release = _fang_env_cpu_dense_ops_release
 };
@@ -94,6 +101,12 @@ _fang_cpu_accel_t _dense_rand[] = {
 };
 _fang_cpu_accel_t _dense_sum[] = {
     _ACCEL_DENSE(sum)
+};
+_fang_cpu_accel_t _dense_diff[] = {
+    _ACCEL_DENSE(diff)
+};
+_fang_cpu_accel_t _dense_mul[] = {
+    _ACCEL_DENSE(mul)
 };
 _fang_cpu_accel_t _dense_gemm[] = {
     /* Fill dummy accelerators as padding. */
@@ -475,22 +488,31 @@ out:
     return res;
 }
 
-/* Adds two tensors. */
-int _fang_env_cpu_dense_ops_sum(fang_ten_ops_arg_t *restrict arg) {
-    int res = FANG_OK;
-
-    fang_ten_t *dest = (fang_ten_t *) arg->dest;
-
-    _fang_cpu_accel_arg_t accel_arg = {
-        .dest = arg->dest,
-        .x = arg->x,
-        .y = arg->y,
-        .z = arg->z
-    };
-    _dense_sum[(int) dest->dtyp](&accel_arg);
-
-    return res;
+/* Macro to abstract away redundant tensor arithmatic operations. */
+#define _FANG_ENV_CPU_DENSE_OPS_ARITH_DEF(operator)                           \
+int _fang_env_cpu_dense_ops_##operator(fang_ten_ops_arg_t *restrict arg) {    \
+    int res = FANG_OK;                                                        \
+                                                                              \
+    fang_ten_t *dest = (fang_ten_t *) arg->dest;                              \
+    _fang_cpu_accel_arg_t accel_arg = {                                       \
+        .dest = arg->dest,                                                    \
+        .x = arg->x,                                                          \
+        .y = arg->y,                                                          \
+        .z = arg->z                                                           \
+    };                                                                        \
+    _dense_##operator[(int) dest->dtyp](&accel_arg);                          \
+                                                                              \
+    return res;                                                               \
 }
+
+/* Adds two tensor. */
+_FANG_ENV_CPU_DENSE_OPS_ARITH_DEF(sum)
+
+/* Subtracts two tensor. */
+_FANG_ENV_CPU_DENSE_OPS_ARITH_DEF(diff)
+
+/* Multiplies two tensor. */
+_FANG_ENV_CPU_DENSE_OPS_ARITH_DEF(mul)
 
 /* Performs GEMM operation between two tensors (this sounds so cool!). */
 int _fang_env_cpu_dense_ops_gemm(fang_ten_ops_arg_t *restrict arg) {
