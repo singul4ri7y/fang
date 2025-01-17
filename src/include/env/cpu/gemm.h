@@ -12,9 +12,9 @@
 /* ================ HELPER MACROS ================ */
 
 /* Fang use row-major order exclusively. */
-#define _alpha(i, j)    x[i * ld_x + j]
-#define _beta(i, j)     y[i * ld_y + j]
-#define _gamma(i, j)    dest[i * ld_dest + j]
+#define _alpha(i, j)    x[(i) * ld_x + (j)]
+#define _beta(i, j)     y[(i) * ld_y + (j)]
+#define _gamma(i, j)    dest[(i) * ld_dest + (j)]
 
 #ifndef _FANG_MIN
 #define _FANG_MIN(x, y)    ((x) < (y) ? (x) : (y))

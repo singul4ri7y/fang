@@ -65,7 +65,7 @@ assert_int_equal(fang_ten_##op(&tens->res_2x4x8_int16, &tens->ten_8x1_int16,    
    may pass those tensors (provided that the tests ran with appropriate setup()
    and teardown() function) to reduce redundancy. */
 typedef struct _fang_ten_tests {
-    /* Regular tensors. */
+    /* Operand tensors. */
     fang_ten_t ten_8_int16;
     fang_ten_t ten_1_int16;
     fang_ten_t ten_1x1x1x1_int16;
@@ -203,7 +203,7 @@ static int setup_arithmetic(void **state) {
     TENCHK(fang_ten_scalar(&tens->sc2_float32, env, FANG_TEN_DTYPE_FLOAT32,
         FANG_F2G(33)));
 
-    /* Initialize regular tensors. */
+    /* Initialize operand tensors. */
     /* (8) */
     TENCHK(fang_ten_create(&tens->ten_8_int16, env,
         FANG_TEN_DTYPE_INT16, (uint32_t[]) { 8 }, 1, data_int));
@@ -866,6 +866,7 @@ static void fang_ten_mul_test(void **state) {
         ten_mul_result14_float32,);
 }
 
+/* Tensor subtraction/difference test. */
 static void fang_ten_diff_test(void **state) {
     /* Get test tensors. */
     _fang_ten_tests_t *tens = (_fang_ten_tests_t *) *state;
@@ -1219,6 +1220,294 @@ static void fang_ten_diff_test(void **state) {
         ten_diff_result14_float32, -);
 }
 
+/* Tensor GEMM test. */
+static void fang_ten_gemm_test(void **state) {
+    int env = (int) (uint64_t) *state;
+
+    /* All the tensors will be filled with natural numbers. */
+    int _THRESHOLD = 16384;
+    fang_float_t data[_THRESHOLD];
+    for(int i = 0; i < _THRESHOLD; i++)
+        data[i] = (fang_float_t) (i + 1);
+
+    fang_ten_t ten_2x2_float32;
+    fang_ten_t ten_13x17_float32;
+    fang_ten_t ten_17x31_float32;
+    fang_ten_t ten_64x64_float32;
+    fang_ten_t ten_4x4x5_float32;
+    fang_ten_t ten_5x3_float32;
+    fang_ten_t ten_5x5x7_float32;
+    fang_ten_t ten_5x7x5_float32;
+    fang_ten_t ten_7x5x7x6_float32;
+    fang_ten_t ten_5x6x7_float32;
+    fang_ten_t ten_3x4x2x3_float32;
+    fang_ten_t ten_3x1x3x2_float32;
+    fang_ten_t ten_3x5x4x3x3_float32;
+    fang_ten_t ten_5x4x3x3_float32;
+    fang_ten_t ten_1x4_float32;
+    fang_ten_t ten_2x4_float32;
+    fang_ten_t ten_4x4_float32;
+    fang_ten_t ten_4x1_float32;
+    fang_ten_t ten_4x2_float32;
+
+    fang_ten_t res_2x2_float32;
+    fang_ten_t res_13x31_float32;
+    fang_ten_t res_64x64_float32;
+    fang_ten_t res_4x4x3_float32;
+    fang_ten_t res_5x5x5_float32;
+    fang_ten_t res_7x5x7x7_float32;
+    fang_ten_t res_3x4x2x2_float32;
+    fang_ten_t res_3x5x4x3x3_float32;
+    fang_ten_t res_1x4_float32;
+    fang_ten_t res_2x4_float32;
+    fang_ten_t res_4x1_float32;
+    fang_ten_t res_4x2_float32;
+
+    /* Create operand tensors. */
+    TENCHK(fang_ten_create(&ten_2x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 2, 2 }, 2, data));
+    TENCHK(fang_ten_create(&ten_13x17_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 13, 17 }, 2, data));
+    TENCHK(fang_ten_create(&ten_17x31_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 17, 31 }, 2, data));
+    TENCHK(fang_ten_create(&ten_64x64_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 64, 64 }, 2, data));
+    TENCHK(fang_ten_create(&ten_4x4x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 4, 5 }, 3, data));
+    TENCHK(fang_ten_create(&ten_5x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 3 }, 2, data));
+    TENCHK(fang_ten_create(&ten_5x5x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 5, 7 }, 3, data));
+    TENCHK(fang_ten_create(&ten_5x7x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 7, 5 }, 3, data));
+    TENCHK(fang_ten_create(&ten_7x5x7x6_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 7, 5, 7, 6 }, 4, data));
+    TENCHK(fang_ten_create(&ten_5x6x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 6, 7 }, 3, data));
+    TENCHK(fang_ten_create(&ten_3x4x2x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 3, 4, 2, 3 }, 4, data));
+    TENCHK(fang_ten_create(&ten_3x1x3x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 3, 1, 3, 2 }, 4, data));
+    TENCHK(fang_ten_create(&ten_3x5x4x3x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 3, 5, 4, 3, 3 }, 5, data));
+    TENCHK(fang_ten_create(&ten_5x4x3x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 4, 3, 3 }, 4, data));
+    TENCHK(fang_ten_create(&ten_4x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 4 }, 2, data));
+    TENCHK(fang_ten_create(&ten_4x1_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 1 }, 2, data));
+    TENCHK(fang_ten_create(&ten_4x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 2 }, 2, data));
+    TENCHK(fang_ten_create(&ten_1x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 1, 4 }, 2, data));
+    TENCHK(fang_ten_create(&ten_2x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 2, 4 }, 2, data));
+
+    TENCHK(fang_ten_create(&res_2x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 2, 2 }, 2, NULL));
+    TENCHK(fang_ten_create(&res_13x31_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 13, 31 }, 2, NULL));
+    TENCHK(fang_ten_create(&res_64x64_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 64, 64 }, 2, data));
+    TENCHK(fang_ten_create(&res_4x4x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 4, 3 }, 3, NULL));
+    TENCHK(fang_ten_create(&res_5x5x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 5, 5 }, 3, NULL));
+    TENCHK(fang_ten_create(&res_7x5x7x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 7, 5, 7, 7 }, 4, NULL));
+    TENCHK(fang_ten_create(&res_3x4x2x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 3, 4, 2, 2 }, 4, NULL));
+    TENCHK(fang_ten_create(&res_3x5x4x3x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 3, 5, 4, 3, 3 }, 5, NULL));
+    TENCHK(fang_ten_create(&res_4x1_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 1 }, 2, data));
+    TENCHK(fang_ten_create(&res_4x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 2 }, 2, NULL));
+    TENCHK(fang_ten_create(&res_1x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 1, 4 }, 2, NULL));
+    TENCHK(fang_ten_create(&res_2x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 2, 4 }, 2, data));
+
+    /* ==== TEST `alpha` & `beta` ==== */
+
+    /* 1.5 * (64, 64) @ (64, 64) + 2.0 * dest */
+    TENCHK(fang_ten_gemm(FANG_TEN_GEMM_NO_TRANSPOSE, FANG_TEN_GEMM_NO_TRANSPOSE,
+        FANG_F2G(2.0f), &res_64x64_float32, FANG_F2G(1.5f), &ten_64x64_float32,
+        &ten_64x64_float32));
+    ASSERT_TEN_DATA_EQf(res_64x64_float32, ten_gemm_result_ab1_float32,);
+
+    /* 0.0 * (4, 4) @ (4, 1) + 3.0 * dest */
+    TENCHK(fang_ten_gemm(FANG_TEN_GEMM_NO_TRANSPOSE, FANG_TEN_GEMM_NO_TRANSPOSE,
+        FANG_F2G(3.0f), &res_4x1_float32, FANG_F2G(0.0f), &ten_4x4_float32,
+        &ten_4x1_float32));
+    ASSERT_TEN_DATA_EQf(res_4x1_float32, ten_gemm_result_ab2_float32,);
+
+    /* 2.0 * (2, 4) @ (4, 4) */
+    TENCHK(fang_ten_gemm(FANG_TEN_GEMM_NO_TRANSPOSE, FANG_TEN_GEMM_NO_TRANSPOSE,
+        FANG_F2G(0.0f), &res_2x4_float32, FANG_F2G(2.0f), &ten_2x4_float32,
+        &ten_4x4_float32));
+    ASSERT_TEN_DATA_EQf(res_2x4_float32, ten_gemm_result_ab3_float32,);
+
+    /* ==== TEST `alpha` & `beta` END ==== */
+
+    /* (2, 2) @ (2, 2) */
+    TENCHK(fang_ten_matmul(&res_2x2_float32, &ten_2x2_float32,
+        &ten_2x2_float32));
+    ASSERT_TEN_DATA_EQf(res_2x2_float32, ten_gemm_result1_float32,);
+
+    /* (13, 17) @ (17, 31) */
+    TENCHK(fang_ten_matmul(&res_13x31_float32, &ten_13x17_float32,
+        &ten_17x31_float32));
+    ASSERT_TEN_DATA_EQf(res_13x31_float32, ten_gemm_result2_float32,);
+
+    /* (64, 64) @ (64, 64) */
+    TENCHK(fang_ten_matmul(&res_64x64_float32, &ten_64x64_float32,
+        &ten_64x64_float32));
+    ASSERT_TEN_DATA_EQf(res_64x64_float32, ten_gemm_result3_float32,);
+
+    /* (4, 4, 5) @ (5, 3) */
+    TENCHK(fang_ten_matmul(&res_4x4x3_float32, &ten_4x4x5_float32,
+        &ten_5x3_float32));
+    ASSERT_TEN_DATA_EQf(res_4x4x3_float32, ten_gemm_result4_float32,);
+
+    /* (5, 5, 7) @ (5, 7, 5) */
+    TENCHK(fang_ten_matmul(&res_5x5x5_float32, &ten_5x5x7_float32,
+        &ten_5x7x5_float32));
+    ASSERT_TEN_DATA_EQf(res_5x5x5_float32, ten_gemm_result5_float32,);
+
+    /* (7, 5, 7, 6) @ (5, 6, 7) */
+    TENCHK(fang_ten_matmul(&res_7x5x7x7_float32, &ten_7x5x7x6_float32,
+        &ten_5x6x7_float32));
+    ASSERT_TEN_DATA_EQf(res_7x5x7x7_float32, ten_gemm_result6_float32,);
+
+    /* (3, 4, 2, 3) @ (3, 1, 3, 2) */
+    TENCHK(fang_ten_matmul(&res_3x4x2x2_float32, &ten_3x4x2x3_float32,
+        &ten_3x1x3x2_float32));
+    ASSERT_TEN_DATA_EQf(res_3x4x2x2_float32, ten_gemm_result7_float32,);
+
+    /* (3, 5, 4, 3, 3) @ (5, 4, 3, 3) */
+    TENCHK(fang_ten_matmul(&res_3x5x4x3x3_float32, &ten_3x5x4x3x3_float32,
+        &ten_5x4x3x3_float32));
+    ASSERT_TEN_DATA_EQf(res_3x5x4x3x3_float32, ten_gemm_result8_float32,);
+
+    /* (1, 4) @ (4, 4) */
+    TENCHK(fang_ten_matmul(&res_1x4_float32, &ten_1x4_float32,
+        &ten_4x4_float32));
+    ASSERT_TEN_DATA_EQf(res_1x4_float32, ten_gemm_result9_float32,);
+
+    /* (2, 4) @ (4, 4) */
+    TENCHK(fang_ten_matmul(&res_2x4_float32, &ten_2x4_float32,
+        &ten_4x4_float32));
+    ASSERT_TEN_DATA_EQf(res_2x4_float32, ten_gemm_result10_float32,);
+
+    /* (4, 4) @ (4, 1) */
+    TENCHK(fang_ten_matmul(&res_4x1_float32, &ten_4x4_float32,
+        &ten_4x1_float32));
+    ASSERT_TEN_DATA_EQf(res_4x1_float32, ten_gemm_result11_float32,);
+
+    /* (4, 4) @ (4, 2) */
+    TENCHK(fang_ten_matmul(&res_4x2_float32, &ten_4x4_float32,
+        &ten_4x2_float32));
+    ASSERT_TEN_DATA_EQf(res_4x2_float32, ten_gemm_result12_float32,);
+
+    /* ==== TRANSPOSE TEST ==== */
+
+    fang_ten_t ten_7x5_float32;
+    fang_ten_t ten_7x3_float32;
+    fang_ten_t ten_13x7_float32;
+    fang_ten_t ten_5x7_float32;
+    fang_ten_t ten_6x5_float32;
+    fang_ten_t ten_5x6_float32;
+
+    fang_ten_t res_5x3_float32;
+    fang_ten_t res_13x5_float32;
+    fang_ten_t res_5x5_float32;
+
+    TENCHK(fang_ten_create(&ten_7x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 7, 5 }, 2, data));
+    TENCHK(fang_ten_create(&ten_7x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 7, 3 }, 2, data));
+    TENCHK(fang_ten_create(&ten_13x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 13, 7 }, 2, data));
+    TENCHK(fang_ten_create(&ten_5x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 7 }, 2, data));
+    TENCHK(fang_ten_create(&ten_6x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 6, 5 }, 2, data));
+    TENCHK(fang_ten_create(&ten_5x6_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 6 }, 2, data));
+
+    TENCHK(fang_ten_create(&res_5x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 3 }, 2, NULL));
+    TENCHK(fang_ten_create(&res_13x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 13, 5 }, 2, NULL));
+    TENCHK(fang_ten_create(&res_5x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 5, 5 }, 2, NULL));
+
+    /* (7, 5) ^ T @ (7, 3) */
+    TENCHK(fang_ten_gemm(FANG_TEN_GEMM_TRANSPOSE, FANG_TEN_GEMM_NO_TRANSPOSE,
+        FANG_F2G(0.0f), &res_5x3_float32, FANG_F2G(1.0f), &ten_7x5_float32,
+        &ten_7x3_float32));
+    ASSERT_TEN_DATA_EQf(res_5x3_float32, ten_gemm_result_t1_float32,);
+
+    /* (13, 7) @ (5, 7) ^ T */
+    TENCHK(fang_ten_gemm(FANG_TEN_GEMM_NO_TRANSPOSE, FANG_TEN_GEMM_TRANSPOSE,
+        FANG_F2G(0.0f), &res_13x5_float32, FANG_F2G(1.0f), &ten_13x7_float32,
+        &ten_5x7_float32));
+    ASSERT_TEN_DATA_EQf(res_13x5_float32, ten_gemm_result_t2_float32,);
+
+    /* (6, 5) ^ T @ (5, 6) ^ T */
+    TENCHK(fang_ten_gemm(FANG_TEN_GEMM_TRANSPOSE, FANG_TEN_GEMM_TRANSPOSE,
+        FANG_F2G(0.0f), &res_5x5_float32, FANG_F2G(1.0f), &ten_6x5_float32,
+        &ten_5x6_float32));
+    ASSERT_TEN_DATA_EQf(res_5x5_float32, ten_gemm_result_t3_float32,);
+
+    fang_ten_release(&ten_7x5_float32);
+    fang_ten_release(&ten_7x3_float32);
+    fang_ten_release(&ten_13x7_float32);
+    fang_ten_release(&ten_5x7_float32);
+    fang_ten_release(&ten_6x5_float32);
+    fang_ten_release(&ten_5x6_float32);
+
+    fang_ten_release(&res_5x3_float32);
+    fang_ten_release(&res_13x5_float32);
+    fang_ten_release(&res_5x5_float32);
+
+    /* ==== TRANSPOSE TEST END ==== */
+
+    fang_ten_release(&ten_2x2_float32);
+    fang_ten_release(&ten_13x17_float32);
+    fang_ten_release(&ten_17x31_float32);
+    fang_ten_release(&ten_64x64_float32);
+    fang_ten_release(&ten_4x4x5_float32);
+    fang_ten_release(&ten_5x3_float32);
+    fang_ten_release(&ten_5x5x7_float32);
+    fang_ten_release(&ten_5x7x5_float32);
+    fang_ten_release(&ten_7x5x7x6_float32);
+    fang_ten_release(&ten_5x6x7_float32);
+    fang_ten_release(&ten_3x4x2x3_float32);
+    fang_ten_release(&ten_3x1x3x2_float32);
+    fang_ten_release(&ten_3x5x4x3x3_float32);
+    fang_ten_release(&ten_5x4x3x3_float32);
+    fang_ten_release(&ten_1x4_float32);
+    fang_ten_release(&ten_4x4_float32);
+    fang_ten_release(&ten_2x4_float32);
+    fang_ten_release(&ten_4x1_float32);
+    fang_ten_release(&ten_4x2_float32);
+
+    fang_ten_release(&res_2x2_float32);
+    fang_ten_release(&res_13x31_float32);
+    fang_ten_release(&res_64x64_float32);
+    fang_ten_release(&res_4x4x3_float32);
+    fang_ten_release(&res_5x5x5_float32);
+    fang_ten_release(&res_7x5x7x7_float32);
+    fang_ten_release(&res_3x4x2x2_float32);
+    fang_ten_release(&res_3x5x4x3x3_float32);
+    fang_ten_release(&res_1x4_float32);
+    fang_ten_release(&res_2x4_float32);
+    fang_ten_release(&res_4x1_float32);
+    fang_ten_release(&res_4x2_float32);
+}
+
 /* ================ TESTS END ================ */
 
 int main() {
@@ -1230,6 +1519,7 @@ int main() {
             teardown_arithmetic),
         cmocka_unit_test_setup_teardown(fang_ten_diff_test, setup_arithmetic,
             teardown_arithmetic),
+        cmocka_unit_test(fang_ten_gemm_test)
     };
 
     return cmocka_run_group_tests_name("tensor/dense", tests, setup, teardown);

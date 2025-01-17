@@ -116,10 +116,7 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_gemm_get_broadcast_pattern(
     /* Size of the broadcastee tensor and it's corresponding matrix. */
     uint32_t pwy_matsiz = pwy->dims[pwy->ndims - 1] * pwy->dims[pwy->ndims - 2];
     uint32_t pwy_first_stride = pwy->strides[0] / pwy_matsiz;
-    if(pwy_first_stride == 0)  // Dealing with a single operand matrix
-        pwy_first_stride = 1;
-
-    uint32_t pwy_siz = pwy_first_stride * pwy->dims[0];
+    uint32_t pwy_siz = (pwy->strides[0] * pwy->dims[0]) / pwy_matsiz;
 
     /* Swap large tensor in terms of size exluding operand matrix. Larger tensor
      * at `pwx`, smaller tensor at `pwy`. This is done to make sure only the
@@ -127,6 +124,7 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_gemm_get_broadcast_pattern(
     {
         uint32_t pwx_matsiz = pwx->dims[pwx->ndims - 1] *
             pwx->dims[pwx->ndims - 2];
+        uint32_t pwx_first_stride = pwx->strides[0] / pwx_matsiz;
         uint32_t pwx_siz = (pwx->strides[0] * pwx->dims[0]) / pwx_matsiz;
 
         if(FANG_UNLIKELY(pwy_siz > pwx_siz))
@@ -136,6 +134,7 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_gemm_get_broadcast_pattern(
             *pwx = temp;
 
             pwy_siz = pwx_siz;
+            pwy_first_stride = pwx_first_stride;
         };
     }
 
@@ -694,9 +693,7 @@ int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
         {
             /* Check if destination tensor is valid to store result. */
             if(FANG_UNLIKELY(dest->ndims != x->ndims ||
-                memcmp(dest->dims, x->dims, (x->ndims - 2) * sizeof(*x->dims)) ||
-                dest->dims[dest->ndims - 1] != y->dims[y->ndims - 1] ||
-                dest->dims[dest->ndims - 2] != x->dims[x->ndims - 2]))
+                memcmp(dest->dims, x->dims, (x->ndims - 2) * sizeof(*x->dims))))
             {
                 res = -FANG_DESTINVDIM;
                 goto out;
@@ -718,10 +715,7 @@ int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
             }
 
             /* Check if destination tensor is valid to store result. */
-            if(FANG_UNLIKELY(dest->ndims != x->ndims ||
-                dest->dims[dest->ndims - 1] != y->dims[y->ndims - 1] ||
-                dest->dims[dest->ndims - 2] != x->dims[x->ndims - 2]))
-            {
+            if(FANG_UNLIKELY(dest->ndims != x->ndims)) {
                 res = -FANG_DESTINVDIM;
                 goto out;
             }

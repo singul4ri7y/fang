@@ -8,7 +8,7 @@
 /* ================ PRIVATE HELPER MACROS ================ */
 
 /* Access element from a matrix upanel. */
-#define X(i, j)     x[i * ld_x + j]
+#define X(i, j)     x[(i) * ld_x + (j)]
 
 /* ================ PRIVATE HELPER MACROS END ================ */
 
