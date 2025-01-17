@@ -1,0 +1,42 @@
+# Github Actions Continuous Integration script.
+#
+# The result of all execution can be found in repository's "Action" tab. Also
+# beware of typos in the YAML file resulting halt in CI executions.
+#
+# Useful references:
+#  - https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
+
+name: Build and Test Fang
+
+on:
+    push:
+        branches: [ main ]
+    pull_request:
+        branches: [ main ]
+
+jobs:
+    build-n-test:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+
+        - name: Install dependencies
+          run: |
+              sudo apt-get update
+              sudo apt-get install -y cmake ninja-build libcmocka0 libcmocka-dev
+
+        - name: Create build directory
+          run: mkdir build
+
+        - name: Configure CMake
+          working-directory: ./build
+          run: cmake -G Ninja .. -DMARCH=native -DGEMM_CPU_TARGET=haswell -DUNIT_TESTING=ON -DFULL_TESTING=ON
+
+        - name: Build
+          working-directory: ./build
+          run: ninja
+
+        - name: Run tests
+          working-directory: ./build
+          run: ctest -j$(nproc) --output-on-failure
