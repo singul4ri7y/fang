@@ -502,6 +502,86 @@ static void fang_ten_create_test(void **state) {
     fang_ten_release(&ten);
 }
 
+/* Tensor scale test. */
+static void fang_ten_scale_test(void **state) {
+    int env = (int) (uint64_t) *state;
+
+    /* Fill tensors with natural numbers. */
+    int _THRESHOLD = 256;
+    fang_int_t data_int[_THRESHOLD];
+    fang_float_t data_float[_THRESHOLD];
+    for(int i = 0; i < _THRESHOLD; i++) {
+        data_int[i] = (fang_int_t) (i + 1);
+        data_float[i] = (fang_float_t) (i + 1);
+    }
+
+    fang_ten_t ten;
+    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_INT8,
+        (uint32_t []) { 4, 4 }, 2, data_int));
+    int siz = (int) (ten.strides[0] * ten.dims[0]);
+
+    /* Scale by 3. */
+    TENCHK(fang_ten_scale(&ten, FANG_I2G(3)));
+
+    /* Test. */
+    int8_t *data_i8 = ten.data.dense;
+    for(int i = 0; i < siz; i++)
+        assert_int_equal(data_i8[i], (int8_t) (3 * data_int[i]));
+
+    fang_ten_release(&ten);
+
+    /* Create another tensor with different datatype this time. */
+    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_FLOAT16,
+        (uint32_t []) { 4, 4, 13 }, 3, data_float));
+    siz = (int) (ten.strides[0] * ten.dims[0]);
+
+    /* Scale by 2. */
+    TENCHK(fang_ten_scale(&ten, FANG_F2G(2.0f)));
+
+    /* Test. */
+    _fang_float16_t *data_f16 = ten.data.dense;
+    for(int i = 0; i < siz; i++) {
+        assert_float_equal(_FANG_H2S(data_f16[i]),
+            _FANG_H2S(_FANG_S2H((float) 2 * data_float[i])), 1e-6);
+    }
+
+    fang_ten_release(&ten);
+}
+
+/* Tensor filling test. */
+static void fang_ten_fill_test(void **state) {
+    int env = (int) (uint64_t) *state;
+
+    fang_ten_t ten1;
+    fang_ten_t ten2;
+
+    TENCHK(fang_ten_create(&ten1, env, FANG_TEN_DTYPE_INT8,
+        (uint32_t []) { 4, 4 }, 2, NULL));
+    TENCHK(fang_ten_create(&ten2, env, FANG_TEN_DTYPE_BFLOAT16,
+        (uint32_t []) { 4, 4 }, 2, NULL));
+
+    /* Fill the tensors. */
+    fang_ten_fill(&ten1, FANG_I2G(69));
+    fang_ten_fill(&ten2, FANG_F2G(333));
+
+    /* Check if `ten1` is properly filled. */
+    int siz = (int) (ten1.strides[0] * ten1.dims[0]);
+    int8_t *data_i8 = ten1.data.dense;
+    for(int i = 0; i < siz; i++)
+        assert_int_equal(data_i8[i], 69);
+
+    /* Check if `ten2` is filled properly. */
+    siz = (int) (ten2.strides[0] * ten2.dims[0]);
+    _fang_bfloat16_t *data_bf16 = ten2.data.dense;
+    for(int i = 0; i < siz; i++) {
+        assert_float_equal(_FANG_BH2S(data_bf16[i]),
+            _FANG_BH2S(_FANG_S2BH(333)), 1e-6);
+    }
+
+    fang_ten_release(&ten1);
+    fang_ten_release(&ten2);
+}
+
 /* Tensor summation test. */
 static void fang_ten_sum_test(void **state) {
     /* Get test tensors. */
@@ -1262,6 +1342,7 @@ static void fang_ten_gemm_test(void **state) {
     fang_ten_t res_2x4_float32;
     fang_ten_t res_4x1_float32;
     fang_ten_t res_4x2_float32;
+    fang_ten_t res_4x4_float32;
 
     /* Create operand tensors. */
     TENCHK(fang_ten_create(&ten_2x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
@@ -1327,6 +1408,12 @@ static void fang_ten_gemm_test(void **state) {
         (uint32_t []) { 1, 4 }, 2, NULL));
     TENCHK(fang_ten_create(&res_2x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
         (uint32_t []) { 2, 4 }, 2, data));
+    TENCHK(fang_ten_create(&res_4x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        (uint32_t []) { 4, 4 }, 2, data));
+
+    /* Dimensions should be incompatible. */
+    assert_int_equal(fang_ten_matmul(&res_4x4_float32, &ten_4x2_float32,
+        &ten_1x4_float32), -FANG_INCMATDIM);
 
     /* ==== TEST `alpha` & `beta` ==== */
 
@@ -1506,6 +1593,7 @@ static void fang_ten_gemm_test(void **state) {
     fang_ten_release(&res_2x4_float32);
     fang_ten_release(&res_4x1_float32);
     fang_ten_release(&res_4x2_float32);
+    fang_ten_release(&res_4x4_float32);
 }
 
 /* ================ TESTS END ================ */
@@ -1513,6 +1601,8 @@ static void fang_ten_gemm_test(void **state) {
 int main() {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(fang_ten_create_test),
+        cmocka_unit_test(fang_ten_scale_test),
+        cmocka_unit_test(fang_ten_fill_test),
         cmocka_unit_test_setup_teardown(fang_ten_sum_test, setup_arithmetic,
             teardown_arithmetic),
         cmocka_unit_test_setup_teardown(fang_ten_mul_test, setup_arithmetic,

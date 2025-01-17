@@ -63,6 +63,12 @@ _FANG_ENV_CPU_DENSE_OPS_DECL(mul)
 /* Performs GEMM operation between two tensors (this sounds so cool!). */
 _FANG_ENV_CPU_DENSE_OPS_DECL(gemm)
 
+/* Scales a tensor. */
+_FANG_ENV_CPU_DENSE_OPS_DECL(scale)
+
+/* Fills a tensor with value. */
+_FANG_ENV_CPU_DENSE_OPS_DECL(fill)
+
 /* Releases a dense tensor. */
 _FANG_ENV_CPU_DENSE_OPS_DECL(release)
 
@@ -80,6 +86,8 @@ static fang_ten_ops_t _dense = {
     .diff = _fang_env_cpu_dense_ops_diff,
     .mul = _fang_env_cpu_dense_ops_mul,
     .gemm = _fang_env_cpu_dense_ops_gemm,
+    .scale = _fang_env_cpu_dense_ops_scale,
+    .fill = _fang_env_cpu_dense_ops_fill,
     .release = _fang_env_cpu_dense_ops_release
 };
 
@@ -98,6 +106,12 @@ static const int dsiz[] = { 1, 2, 4, 8, 1, 2, 4, 8, 1, 2, 2, 4, 8 };
 /* NOTE: Array order conforms to `fang_ten_dtype_t` enum. */
 _fang_cpu_accel_t _dense_rand[] = {
     _ACCEL_DENSE(rand)
+};
+_fang_cpu_accel_t _dense_scale[] = {
+    _ACCEL_DENSE(scale)
+};
+_fang_cpu_accel_t _dense_fill[] = {
+    _ACCEL_DENSE(fill)
 };
 _fang_cpu_accel_t _dense_sum[] = {
     _ACCEL_DENSE(sum)
@@ -486,6 +500,38 @@ int _fang_env_cpu_dense_ops_rand(fang_ten_ops_arg_t *restrict arg) {
 
 out:
     return res;
+}
+
+/* Scales a tensor. */
+int _fang_env_cpu_dense_ops_scale(fang_ten_ops_arg_t *restrict arg) {
+    int res = FANG_OK;
+
+    fang_ten_t *ten = (fang_ten_t *) arg->dest;
+
+    _fang_cpu_accel_arg_t accel_arg = {
+        .dest = arg->dest,
+        .x = arg->x,
+    };
+    _dense_scale[(int) ten->dtyp](&accel_arg);
+
+    return res;
+
+}
+
+/* Fills a tensor with value. */
+int _fang_env_cpu_dense_ops_fill(fang_ten_ops_arg_t *restrict arg) {
+    int res = FANG_OK;
+
+    fang_ten_t *ten = (fang_ten_t *) arg->dest;
+
+    _fang_cpu_accel_arg_t accel_arg = {
+        .dest = arg->dest,
+        .x = arg->x,
+    };
+    _dense_fill[(int) ten->dtyp](&accel_arg);
+
+    return res;
+
 }
 
 /* Macro to abstract away redundant tensor arithmatic operations. */

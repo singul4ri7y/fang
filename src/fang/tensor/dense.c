@@ -412,6 +412,14 @@ out:
 int fang_ten_##operator(fang_ten_t *dest, fang_ten_t *x, fang_ten_t *y) {       \
     int res = FANG_OK;                                                          \
                                                                                 \
+    /* Tensors has to be dense. */                                              \
+    if(FANG_UNLIKELY(dest->typ != FANG_TEN_TYPE_DENSE ||                        \
+        x->typ != FANG_TEN_TYPE_DENSE || y->typ != FANG_TEN_TYPE_DENSE))        \
+    {                                                                           \
+        res = -FANG_INVTENTYP;                                                  \
+        goto out;                                                               \
+    }                                                                           \
+                                                                                \
     /* Tensors have to belong to same Environment. */                           \
     if(FANG_UNLIKELY(dest->eid != x->eid || x->eid != y->eid)) {                \
         res = -FANG_ENVNOMATCH;                                                 \
@@ -611,6 +619,14 @@ int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
     fang_gen_t alpha, fang_ten_t *x, fang_ten_t *y)
 {
     int res = FANG_OK;
+
+    /* Tensors has to be dense. */
+    if(FANG_UNLIKELY(dest->typ != FANG_TEN_TYPE_DENSE ||
+        x->typ != FANG_TEN_TYPE_DENSE || y->typ != FANG_TEN_TYPE_DENSE))
+    {
+        res = -FANG_INVTENTYP;
+        goto out;
+    }
 
     /* Tensors have to belong to same Environment. */
     if(FANG_UNLIKELY(dest->eid != x->eid || x->eid != y->eid)) {
@@ -816,6 +832,66 @@ int fang_ten_gemm(fang_ten_gemm_transp_t transp_x,
         arg.z = FANG_I2G(transpose_mask | (uint8_t) pattern);
         res = env->ops->dense->gemm(&arg);
     }
+
+out:
+    return res;
+}
+
+/* Scales a tensor. */
+int fang_ten_scale(fang_ten_t *ten, fang_gen_t factor) {
+    int res = FANG_OK;
+
+    /* Tensor has to be dense tensor. */
+    if(FANG_UNLIKELY(ten->typ != FANG_TEN_TYPE_DENSE)) {
+        res = -FANG_INVTENTYP;
+        goto out;
+    }
+
+    /* Handle scalar tensor. */
+    fang_ten_t input = *ten;
+    input.dims    = input.dims == NULL ? (uint32_t []) { 1 } : input.dims;
+    input.strides = input.strides == NULL ? (uint32_t []) { 1 } : input.strides;
+
+    /* Get Environment. */
+    fang_env_t *env;
+    if(FANG_UNLIKELY(!FANG_ISOK(res = _fang_env_retrieve(&env, ten->eid))))
+        goto out;
+
+    fang_ten_ops_arg_t arg = {
+        .dest = (fang_gen_t) &input,
+        .x = factor,
+    };
+    res = env->ops->dense->scale(&arg);
+
+out:
+    return res;
+}
+
+/* Fills the tensor with given value. */
+int fang_ten_fill(fang_ten_t *ten, fang_gen_t value) {
+    int res = FANG_OK;
+
+    /* Tensor has to be dense tensor. */
+    if(FANG_UNLIKELY(ten->typ != FANG_TEN_TYPE_DENSE)) {
+        res = -FANG_INVTENTYP;
+        goto out;
+    }
+
+    /* Handle scalar tensor. */
+    fang_ten_t input = *ten;
+    input.dims    = input.dims == NULL ? (uint32_t []) { 1 } : input.dims;
+    input.strides = input.strides == NULL ? (uint32_t []) { 1 } : input.strides;
+
+    /* Get Environment. */
+    fang_env_t *env;
+    if(FANG_UNLIKELY(!FANG_ISOK(res = _fang_env_retrieve(&env, ten->eid))))
+        goto out;
+
+    fang_ten_ops_arg_t arg = {
+        .dest = (fang_gen_t) &input,
+        .x = value,
+    };
+    res = env->ops->dense->fill(&arg);
 
 out:
     return res;

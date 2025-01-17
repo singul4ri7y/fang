@@ -148,6 +148,8 @@ typedef struct fang_ten_ops {
     fang_ten_operator_fn diff;
     fang_ten_operator_fn mul;
     fang_ten_operator_fn gemm;
+    fang_ten_operator_fn scale;
+    fang_ten_operator_fn fill;
     fang_ten_operator_fn release;
 } fang_ten_ops_t;
 
@@ -179,6 +181,12 @@ FANG_API FANG_HOT int fang_ten_fprint(fang_ten_t *ten, const char *name,
 /* Fill dense tensor with random numbers. */
 FANG_API int fang_ten_rand(fang_ten_t *ten, fang_gen_t low, fang_gen_t high,
     uint32_t seed);
+
+/* Scales a tensor. */
+FANG_API FANG_HOT int fang_ten_scale(fang_ten_t *ten, fang_gen_t factor);
+
+/* Fills the tensor with given value. */
+FANG_API FANG_HOT int fang_ten_fill(fang_ten_t *ten, fang_gen_t value);
 
 /* Adds two tensor. */
 FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,

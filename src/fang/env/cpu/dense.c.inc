@@ -47,12 +47,12 @@ _fang_get_original_idx(int idx, int *restrict idx_x, int *restrict
 /* ================ ACCELERATOR FUNCTIONS ================ */
 
 /* Common. */
-#define _ACCEL_RAND_PROLOGUE(type, prefix)                         \
-    fang_ten_t *ten = (fang_ten_t *) arg->dest;  /* Tensor */      \
-    type diff     = (type) FANG_G2##prefix(arg->x);  /* Diff */    \
-    type low      = (type) FANG_G2##prefix(arg->y);  /* Low */     \
-    int size      = ten->dims == NULL ? 1 :                        \
-        (int) ten->strides[0] * ten->dims[0];                      \
+#define _ACCEL_RAND_PROLOGUE(type, prefix)                              \
+    fang_ten_t *ten = (fang_ten_t *) arg->dest;  /* Tensor */           \
+    type diff     = (type) FANG_G2##prefix(arg->x);  /* Diff */         \
+    type low      = (type) FANG_G2##prefix(arg->y);  /* Low */          \
+    int size      = ten->dims == NULL ? 1 :                             \
+        (int) ten->strides[0] * ten->dims[0];                           \
     uint32_t seed = (uint32_t) FANG_G2U(arg->z);
 
 /* Common for integer types. */
@@ -68,9 +68,9 @@ _fang_dense_accel_randi##bits(_fang_cpu_accel_arg_t *restrict arg) {    \
 }
 
 /* Common for float types. */
-#define _ACCEL_RANDF(dt, type, type_cast, conv_a2b)                   \
+#define _ACCEL_RANDF(dt, type, type_cast, conv_a2b)                     \
 FANG_HOT FANG_FLATTEN static void                                       \
-_fang_dense_accel_rand##dt(_fang_cpu_accel_arg_t *restrict arg) {    \
+_fang_dense_accel_rand##dt(_fang_cpu_accel_arg_t *restrict arg) {       \
     _ACCEL_RAND_PROLOGUE(type_cast, F);                                 \
     type *data = (type *) ten->data.dense;                              \
     for(int i = 0; i < size; i++) {                                     \
@@ -511,6 +511,74 @@ FANG_HOT FANG_FLATTEN static void
 }
 
 /* ======== GEMM END ======== */
+
+/* ======== SCALE ======== */
+
+#define _ACCEL_SCALE_PROLOGUE(type, prefix)                                  \
+    fang_ten_t *ten = (fang_ten_t *) arg->dest;  /* Tensor */                \
+    type factor     = (type) FANG_G2##prefix(arg->x);  /* Factor */          \
+    int size        = ten->dims == NULL ? 1 :                                \
+        (int) (ten->strides[0] * ten->dims[0]);
+
+#define _ACCEL_SCALE(type, tcast, postfix, prefix, conv_a2b, conv_b2a)       \
+FANG_HOT FANG_FLATTEN static void                                            \
+    _fang_dense_accel_scale##postfix(_fang_cpu_accel_arg_t *restrict arg)    \
+{                                                                            \
+    _ACCEL_SCALE_PROLOGUE(tcast, prefix);                                    \
+    type *data = (type *) ten->data.dense;                                   \
+                                                                             \
+    for(int i = 0; i < size; i++)                                            \
+        data[i] = conv_b2a(factor * conv_a2b(data[i]));                      \
+}
+
+/* Integer types. */
+_ACCEL_SCALE(int8_t, int8_t, i8, I,,)
+_ACCEL_SCALE(int16_t, int16_t, i16, I,,)
+_ACCEL_SCALE(int32_t, int32_t, i32, I,,)
+_ACCEL_SCALE(int64_t, int64_t, i64, I,,)
+
+/* Floating point types. */
+_ACCEL_SCALE(_fang_float8_t, float, f8, F, _FANG_Q2S, _FANG_S2Q)
+_ACCEL_SCALE(_fang_float16_t, float, f16, F, _FANG_H2S, _FANG_S2H)
+_ACCEL_SCALE(_fang_bfloat16_t, float, bf16, F, _FANG_BH2S, _FANG_S2BH)
+_ACCEL_SCALE(float, float, f32, F,,)
+_ACCEL_SCALE(double, double, f64, F,,)
+
+/* ======== SCALE END ======== */
+
+/* ======== FILL ======== */
+
+#define _ACCEL_FILL_PROLOGUE(type, prefix)                                   \
+    fang_ten_t *ten = (fang_ten_t *) arg->dest;  /* Tensor */                \
+    type value      = (type) FANG_G2##prefix(arg->x);  /* Value */           \
+    int size        = ten->dims == NULL ? 1 :                                \
+        (int) (ten->strides[0] * ten->dims[0]);
+
+#define _ACCEL_FILL(type, tcast, postfix, prefix, conv_a2b)                  \
+FANG_HOT FANG_FLATTEN static void                                            \
+    _fang_dense_accel_fill##postfix(_fang_cpu_accel_arg_t *restrict arg)     \
+{                                                                            \
+    _ACCEL_FILL_PROLOGUE(tcast, prefix);                                     \
+    type *data = (type *) ten->data.dense;                                   \
+                                                                             \
+    for(int i = 0; i < size; i++)                                            \
+        data[i] = conv_a2b(value);                                           \
+}
+
+/* Integer types. */
+_ACCEL_FILL(int8_t, int8_t, i8, I,)
+_ACCEL_FILL(int16_t, int16_t, i16, I,)
+_ACCEL_FILL(int32_t, int32_t, i32, I,)
+_ACCEL_FILL(int64_t, int64_t, i64, I,)
+
+/* Floating point types. */
+_ACCEL_FILL(_fang_float8_t, float, f8, F, _FANG_S2Q)
+_ACCEL_FILL(_fang_float16_t, float, f16, F, _FANG_S2H)
+_ACCEL_FILL(_fang_bfloat16_t, float, bf16, F, _FANG_S2BH)
+_ACCEL_FILL(float, float, f32, F,)
+_ACCEL_FILL(double, double, f64, F,)
+
+/* ======== FILL END ======== */
 
 /* ================ ACCELERATOR FUNCTIONS END ================ */
 
