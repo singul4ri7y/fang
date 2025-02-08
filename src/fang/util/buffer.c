@@ -5,13 +5,13 @@
 /* ================ PRIVATE MACROS ================ */
 
 /* Responsible for exponential growth of capacity (by twice). */
-#define _FANG_GROW_CAPACITY(x)    x < FANG_BUFFER_INIT_CAPACITY ?    \
-    FANG_BUFFER_INIT_CAPACITY : x * 2
+#define _FANG_GROW_CAPACITY(x)    ((x) < FANG_BUFFER_INIT_CAPACITY ?    \
+    FANG_BUFFER_INIT_CAPACITY : (x) * 2)
 
-#define _FANG_REPORT(buff, result)      \
-    if(FANG_UNLIKELY(buff == NULL)) {   \
-        result = -FANG_NOMEM;           \
-        goto out;                       \
+#define _FANG_REPORT(buff, result)                                      \
+    if(FANG_UNLIKELY(buff == NULL)) {                                   \
+        result = -FANG_NOMEM;                                           \
+        goto out;                                                       \
     }
 
 /* ================ PRIVATE MACROS END ================ */

@@ -154,7 +154,7 @@ typedef struct fang_ten_ops {
 } fang_ten_ops_t;
 
 /* Used to indicate whether to transpose a matrix (two trailing dimension within
- * tensor) while performing GEMM. */
+   tensor) while performing GEMM. */
 typedef enum fang_ten_gemm_transp {
     FANG_TEN_GEMM_NO_TRANSPOSE,
     FANG_TEN_GEMM_TRANSPOSE
@@ -196,7 +196,7 @@ FANG_API FANG_HOT int fang_ten_sum(fang_ten_t *dest, fang_ten_t *x,
 FANG_API FANG_HOT int fang_ten_diff(fang_ten_t *dest, fang_ten_t *x,
     fang_ten_t *y);
 
-/* Multiplies two tensor. */
+/* Element-wise multiplies two tensor. */
 FANG_API FANG_HOT int fang_ten_mul(fang_ten_t *dest, fang_ten_t *x,
     fang_ten_t *y);
 
