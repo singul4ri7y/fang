@@ -8,6 +8,19 @@
 
 /* ================ HELPER MACROS ================ */
 
+/* ======== DIMENSION HELPER MACROS ======== */
+
+/* Fill in and pass the dimension tensor. */
+#define FANG_DIM(...)    (fang_ten_dim_t) {                              \
+    .dims = (uint32_t []) { __VA_ARGS__ },                               \
+    .ndims = sizeof((uint32_t []) { __VA_ARGS__ }) / sizeof(uint32_t)    \
+}
+
+/* Alias. */
+#define $D(...)          FANG_DIM(__VA_ARGS__)
+
+/* ======== DIMENSION HELPER MACROS END ======== */
+
 /* ======== FUNCTION WRAPPER MACROS ======== */
 
 /* Print tensor to stdout. */
@@ -120,6 +133,12 @@ typedef struct fang_ten {
     } data;
 } fang_ten_t;
 
+/* Structure to pass dimension data to the Tensor. */
+typedef struct fang_ten_dim {
+    uint32_t *dims;
+    int ndims;
+} fang_ten_dim_t;
+
 /* Pass arguments to the operator functions with this structure. */
 /* NOTE: Argument structure also can be used to retrieve data from operator
  *   functions. Recommended field for that is `y`.
@@ -167,8 +186,7 @@ typedef enum fang_ten_gemm_transp {
 
 /* Creates a new dense tensor. */
 FANG_API FANG_HOT int fang_ten_create(fang_ten_t *ten, int eid,
-    fang_ten_dtype_t dtyp, uint32_t *restrict dims, uint16_t ndims,
-    void *restrict data);
+    fang_ten_dtype_t dtyp, fang_ten_dim_t dim, void *restrict data);
 
 /* Creates a scalar tensor. */
 FANG_API FANG_HOT int fang_ten_scalar(fang_ten_t *ten, int eid,

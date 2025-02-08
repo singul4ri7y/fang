@@ -195,12 +195,12 @@ FANG_HOT FANG_INLINE static inline int _fang_ten_gemm_get_broadcast_pattern(
 
 /* Creates a new dense tensor. */
 int fang_ten_create(fang_ten_t *ten, int eid, fang_ten_dtype_t dtyp,
-    uint32_t *restrict dims, uint16_t ndims, void *restrict data)
+    fang_ten_dim_t dim, void *restrict data)
 {
     int res = FANG_OK;
 
     /* Is passed dimension valid? */
-    if(FANG_UNLIKELY(ndims == 0 || dims == NULL)) {
+    if(FANG_UNLIKELY(dim.ndims == 0 || dim.dims == NULL)) {
         res = -FANG_INVDIM;
         goto out;
     }
@@ -223,35 +223,35 @@ int fang_ten_create(fang_ten_t *ten, int eid, fang_ten_dtype_t dtyp,
         goto out;
 
     /* Validate dimensions. */
-    for(int i = 0; i < ndims; i++) {
-        if(FANG_UNLIKELY(dims[i] == 0)) {
+    for(int i = 0; i < dim.ndims; i++) {
+        if(FANG_UNLIKELY(dim.dims[i] == 0)) {
             res = -FANG_INVDIM;
             goto out;
         }
     }
     /* Store dimensions. */
-    ten->ndims = ndims;
-    ten->dims = FANG_CREATE(env->realloc, *ten->dims, ndims);
+    ten->ndims = dim.ndims;
+    ten->dims = FANG_CREATE(env->realloc, *ten->dims, dim.ndims);
     if(ten->dims == NULL) {
         res = -FANG_NOMEM;
         goto out;
     }
-    memmove(ten->dims, dims, ndims * sizeof(*ten->dims));
+    memmove(ten->dims, dim.dims, dim.ndims * sizeof(*ten->dims));
 
     /* Calculate and store strides. */
-    ten->strides = FANG_CREATE(env->realloc, *ten->strides, ndims);
+    ten->strides = FANG_CREATE(env->realloc, *ten->strides, dim.ndims);
     if(ten->strides == NULL) {
         res = -FANG_NOMEM;
         goto out;
     }
-    _fang_ten_calc_strides(ten->strides, dims, ndims);
+    _fang_ten_calc_strides(ten->strides, dim.dims, dim.ndims);
 
     /* Call operator. */
     fang_ten_ops_arg_t arg = {
         .dest = (fang_gen_t *) ten,
 
         /* Number of elements. */
-        .x = FANG_U2G((fang_uint_t) ten->strides[0] * dims[0]),
+        .x = FANG_U2G((fang_uint_t) ten->strides[0] * dim.dims[0]),
         .y = (fang_gen_t) data,
         .z = (fang_gen_t) env
     };
