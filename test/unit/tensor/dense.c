@@ -205,133 +205,133 @@ static int setup_arithmetic(void **state) {
 
     /* Initialize operand tensors. */
     /* (8) */
-    TENCHK(fang_ten_create(&tens->ten_8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 8 }, 1, data_int));
-    TENCHK(fang_ten_create(&tens->ten_8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 8 }, 1, data_float));
-    TENCHK(fang_ten_create(&tens->ten_8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 8 }, 1, data_float));
+    TENCHK(fang_ten_create(&tens->ten_8_int16, env, FANG_TEN_DTYPE_INT16,
+        $D(8), data_int));
+    TENCHK(fang_ten_create(&tens->ten_8_bfloat16, env, FANG_TEN_DTYPE_BFLOAT16,
+        $D(8), data_float));
+    TENCHK(fang_ten_create(&tens->ten_8_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        $D(8), data_float));
 
     /* (1) */
-    TENCHK(fang_ten_create(&tens->ten_1_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 1 }, 1, data_int));
-    TENCHK(fang_ten_create(&tens->ten_1_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 1 }, 1, data_float));
-    TENCHK(fang_ten_create(&tens->ten_1_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 1 }, 1, data_float));
+    TENCHK(fang_ten_create(&tens->ten_1_int16, env, FANG_TEN_DTYPE_INT16,
+        $D(1), data_int));
+    TENCHK(fang_ten_create(&tens->ten_1_bfloat16, env, FANG_TEN_DTYPE_BFLOAT16,
+        $D(1), data_float));
+    TENCHK(fang_ten_create(&tens->ten_1_float32, env, FANG_TEN_DTYPE_FLOAT32,
+        $D(1), data_float));
 
     /* (1, 1, 1, 1) */
     TENCHK(fang_ten_create(&tens->ten_1x1x1x1_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 1, 1, 1, 1 }, 4, data_int));
+        FANG_TEN_DTYPE_INT16, $D(1, 1, 1, 1), data_int));
     TENCHK(fang_ten_create(&tens->ten_1x1x1x1_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 1, 1, 1, 1 }, 4, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(1, 1, 1, 1), data_float));
     TENCHK(fang_ten_create(&tens->ten_1x1x1x1_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 1, 1, 1, 1 }, 4, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(1, 1, 1, 1), data_float));
 
     /* (8, 8) */
     TENCHK(fang_ten_create(&tens->ten_8x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 8, 8 }, 2, data_int));
+        FANG_TEN_DTYPE_INT16, $D(8, 8), data_int));
     TENCHK(fang_ten_create(&tens->ten_8x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 8, 8 }, 2, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(8, 8), data_float));
     TENCHK(fang_ten_create(&tens->ten_8x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 8, 8 }, 2, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(8, 8), data_float));
 
     /* (8, 1) */
     TENCHK(fang_ten_create(&tens->ten_8x1_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 8, 1 }, 2, data_int));
+        FANG_TEN_DTYPE_INT16, $D(8, 1), data_int));
     TENCHK(fang_ten_create(&tens->ten_8x1_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 8, 1 }, 2, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(8, 1), data_float));
     TENCHK(fang_ten_create(&tens->ten_8x1_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 8, 1 }, 2, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(8, 1), data_float));
 
     /* (3, 8, 8) */
     TENCHK(fang_ten_create(&tens->ten_3x8x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 3, 8, 8 }, 3, data_int));
+        FANG_TEN_DTYPE_INT16, $D(3, 8, 8), data_int));
     TENCHK(fang_ten_create(&tens->ten_3x8x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 3, 8, 8 }, 3, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(3, 8, 8), data_float));
     TENCHK(fang_ten_create(&tens->ten_3x8x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 3, 8, 8 }, 3, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(3, 8, 8), data_float));
 
     /* (2, 4, 8) */
     TENCHK(fang_ten_create(&tens->ten_2x4x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 2, 4, 8 }, 3, data_int));
+        FANG_TEN_DTYPE_INT16, $D(2, 4, 8), data_int));
     TENCHK(fang_ten_create(&tens->ten_2x4x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 2, 4, 8 }, 3, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(2, 4, 8), data_float));
     TENCHK(fang_ten_create(&tens->ten_2x4x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 2, 4, 8 }, 3, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(2, 4, 8), data_float));
 
     /* (1, 4, 1) */
     TENCHK(fang_ten_create(&tens->ten_1x4x1_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 1, 4, 1 }, 3, data_int));
+        FANG_TEN_DTYPE_INT16, $D(1, 4, 1), data_int));
     TENCHK(fang_ten_create(&tens->ten_1x4x1_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 1, 4, 1 }, 3, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(1, 4, 1), data_float));
     TENCHK(fang_ten_create(&tens->ten_1x4x1_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 1, 4, 1 }, 3, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(1, 4, 1), data_float));
 
     /* (2, 3, 4, 8) */
     TENCHK(fang_ten_create(&tens->ten_2x3x4x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 2, 3, 4, 8 }, 4, data_int));
+        FANG_TEN_DTYPE_INT16, $D(2, 3, 4, 8), data_int));
     TENCHK(fang_ten_create(&tens->ten_2x3x4x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 2, 3, 4, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(2, 3, 4, 8), data_float));
     TENCHK(fang_ten_create(&tens->ten_2x3x4x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 2, 3, 4, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(2, 3, 4, 8), data_float));
 
     /* (1, 3, 4, 8) */
     TENCHK(fang_ten_create(&tens->ten_1x3x4x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 1, 3, 4, 8 }, 4, data_int));
+        FANG_TEN_DTYPE_INT16, $D(1, 3, 4, 8), data_int));
     TENCHK(fang_ten_create(&tens->ten_1x3x4x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 1, 3, 4, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(1, 3, 4, 8), data_float));
     TENCHK(fang_ten_create(&tens->ten_1x3x4x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 1, 3, 4, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(1, 3, 4, 8), data_float));
 
     /* (1, 3, 1, 8) */
     TENCHK(fang_ten_create(&tens->ten_1x3x1x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 1, 3, 1, 8 }, 4, data_int));
+        FANG_TEN_DTYPE_INT16, $D(1, 3, 1, 8), data_int));
     TENCHK(fang_ten_create(&tens->ten_1x3x1x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 1, 3, 1, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(1, 3, 1, 8), data_float));
     TENCHK(fang_ten_create(&tens->ten_1x3x1x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 1, 3, 1, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(1, 3, 1, 8), data_float));
 
     /* (2, 1, 4, 8) */
     TENCHK(fang_ten_create(&tens->ten_2x1x4x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 2, 1, 4, 8 }, 4, data_int));
+        FANG_TEN_DTYPE_INT16, $D(2, 1, 4, 8), data_int));
     TENCHK(fang_ten_create(&tens->ten_2x1x4x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 2, 1, 4, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_BFLOAT16, $D(2, 1, 4, 8), data_float));
     TENCHK(fang_ten_create(&tens->ten_2x1x4x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 2, 1, 4, 8 }, 4, data_float));
+        FANG_TEN_DTYPE_FLOAT32, $D(2, 1, 4, 8), data_float));
 
     /* (3, 1, 1, 2, 1) */
     TENCHK(fang_ten_create(&tens->ten_3x1x1x2x1_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 3, 1, 1, 2, 1 }, 5,
+        FANG_TEN_DTYPE_INT16, $D(3, 1, 1, 2, 1),
         data_int));
     TENCHK(fang_ten_create(&tens->ten_3x1x1x2x1_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 3, 1, 1, 2, 1 }, 5,
+        FANG_TEN_DTYPE_BFLOAT16, $D(3, 1, 1, 2, 1),
         data_float));
     TENCHK(fang_ten_create(&tens->ten_3x1x1x2x1_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 3, 1, 1, 2, 1 }, 5,
+        FANG_TEN_DTYPE_FLOAT32, $D(3, 1, 1, 2, 1),
         data_float));
 
     /* (1, 2, 3, 2, 5) */
     TENCHK(fang_ten_create(&tens->ten_1x2x3x2x5_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 1, 2, 3, 2, 5 }, 5,
+        FANG_TEN_DTYPE_INT16, $D(1, 2, 3, 2, 5),
         data_int));
     TENCHK(fang_ten_create(&tens->ten_1x2x3x2x5_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 1, 2, 3, 2, 5 }, 5,
+        FANG_TEN_DTYPE_BFLOAT16, $D(1, 2, 3, 2, 5),
         data_float));
     TENCHK(fang_ten_create(&tens->ten_1x2x3x2x5_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 1, 2, 3, 2, 5 }, 5,
+        FANG_TEN_DTYPE_FLOAT32, $D(1, 2, 3, 2, 5),
         data_float));
 
     /* Resulting tensors. */
     /* (8) */
     TENCHK(fang_ten_create(&tens->res_8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 8 }, 1,
+        FANG_TEN_DTYPE_INT16, $D(8),
         data_int));
     TENCHK(fang_ten_create(&tens->res_8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 8 }, 1,
+        FANG_TEN_DTYPE_BFLOAT16, $D(8),
         data_float));
     TENCHK(fang_ten_create(&tens->res_8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 8 }, 1,
+        FANG_TEN_DTYPE_FLOAT32, $D(8),
         data_float));
 
     /* () */
@@ -344,68 +344,68 @@ static int setup_arithmetic(void **state) {
 
     /* (8, 8) */
     TENCHK(fang_ten_create(&tens->res_8x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 8, 8 }, 2,
+        FANG_TEN_DTYPE_INT16, $D(8, 8),
         data_int));
     TENCHK(fang_ten_create(&tens->res_8x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 8, 8 }, 2,
+        FANG_TEN_DTYPE_BFLOAT16, $D(8, 8),
         data_float));
     TENCHK(fang_ten_create(&tens->res_8x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 8, 8 }, 2,
+        FANG_TEN_DTYPE_FLOAT32, $D(8, 8),
         data_float));
 
     /* (1, 1, 1, 8) */
     TENCHK(fang_ten_create(&tens->res_1x1x1x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 1, 1, 1, 8 }, 4,
+        FANG_TEN_DTYPE_INT16, $D(1, 1, 1, 8),
         data_int));
     TENCHK(fang_ten_create(&tens->res_1x1x1x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 1, 1, 1, 8 }, 4,
+        FANG_TEN_DTYPE_BFLOAT16, $D(1, 1, 1, 8),
         data_float));
     TENCHK(fang_ten_create(&tens->res_1x1x1x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 1, 1, 1, 8 }, 4,
+        FANG_TEN_DTYPE_FLOAT32, $D(1, 1, 1, 8),
         data_float));
 
     /* (3, 8, 8) */
     TENCHK(fang_ten_create(&tens->res_3x8x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 3, 8, 8 }, 3,
+        FANG_TEN_DTYPE_INT16, $D(3, 8, 8),
         data_int));
     TENCHK(fang_ten_create(&tens->res_3x8x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 3, 8, 8 }, 3,
+        FANG_TEN_DTYPE_BFLOAT16, $D(3, 8, 8),
         data_float));
     TENCHK(fang_ten_create(&tens->res_3x8x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 3, 8, 8 }, 3,
+        FANG_TEN_DTYPE_FLOAT32, $D(3, 8, 8),
         data_float));
 
     /* (2, 4, 8) */
     TENCHK(fang_ten_create(&tens->res_2x4x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 2, 4, 8 }, 3,
+        FANG_TEN_DTYPE_INT16, $D(2, 4, 8),
         data_int));
     TENCHK(fang_ten_create(&tens->res_2x4x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 2, 4, 8 }, 3,
+        FANG_TEN_DTYPE_BFLOAT16, $D(2, 4, 8),
         data_float));
     TENCHK(fang_ten_create(&tens->res_2x4x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 2, 4, 8 }, 3,
+        FANG_TEN_DTYPE_FLOAT32, $D(2, 4, 8),
         data_float));
 
     /* (2, 3, 4, 8) */
     TENCHK(fang_ten_create(&tens->res_2x3x4x8_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 2, 3, 4, 8 }, 4,
+        FANG_TEN_DTYPE_INT16, $D(2, 3, 4, 8),
         data_int));
     TENCHK(fang_ten_create(&tens->res_2x3x4x8_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 2, 3, 4, 8 }, 4,
+        FANG_TEN_DTYPE_BFLOAT16, $D(2, 3, 4, 8),
         data_float));
     TENCHK(fang_ten_create(&tens->res_2x3x4x8_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 2, 3, 4, 8 }, 4,
+        FANG_TEN_DTYPE_FLOAT32, $D(2, 3, 4, 8),
         data_float));
 
     /* (3, 2, 3, 2, 5) */
     TENCHK(fang_ten_create(&tens->res_3x2x3x2x5_int16, env,
-        FANG_TEN_DTYPE_INT16, (uint32_t[]) { 3, 2, 3, 2, 5 }, 5,
+        FANG_TEN_DTYPE_INT16, $D(3, 2, 3, 2, 5),
         data_int));
     TENCHK(fang_ten_create(&tens->res_3x2x3x2x5_bfloat16, env,
-        FANG_TEN_DTYPE_BFLOAT16, (uint32_t[]) { 3, 2, 3, 2, 5 }, 5,
+        FANG_TEN_DTYPE_BFLOAT16, $D(3, 2, 3, 2, 5),
         data_float));
     TENCHK(fang_ten_create(&tens->res_3x2x3x2x5_float32, env,
-        FANG_TEN_DTYPE_FLOAT32, (uint32_t[]) { 3, 2, 3, 2, 5 }, 5,
+        FANG_TEN_DTYPE_FLOAT32, $D(3, 2, 3, 2, 5),
         data_float));
 
     *state = (void *) tens;
@@ -438,24 +438,23 @@ static void fang_ten_create_test(void **state) {
     /* Get the Environment. */
     int env = (int) (uint64_t) *state;
 
-    uint32_t dims[] = { 3, 4, 7, 2, 8, 5 };
+    fang_ten_dim_t dim = FANG_DIM(3, 4, 7, 2, 8, 5);
     fang_ten_t ten;
 
     /* Tensor creation should be successful. */
-    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_FLOAT16, dims,
-        _ARR_SIZ(dims), NULL));
+    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_FLOAT16, dim, NULL));
 
     /* Environment ID should match. */
     assert_int_equal(ten.eid, env);
 
     /* Dimension count should match. */
-    assert_int_equal(ten.ndims, _ARR_SIZ(dims));
+    assert_int_equal(ten.ndims, dim.ndims);
 
     /* Dimension and strides check. */
     uint32_t stride = 1;
     for(int i = 0; i < ten.ndims; i++) {
         /* Dimension should match. */
-        assert_int_equal(ten.dims[i], dims[i]);
+        assert_int_equal(ten.dims[i], dim.dims[i]);
 
         /* Stride should match. */
         assert_int_equal(ten.strides[ten.ndims - (i + 1)], stride);
@@ -484,8 +483,7 @@ static void fang_ten_create_test(void **state) {
     fang_ten_release(&ten);
 
     /* Create a new tensor with data. */
-    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_INT8, dims,
-        _ARR_SIZ(dims), input_data));
+    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_INT8, dim, input_data));
 
     /* Check data initialization. */
     int8_t *idata = ten.data.dense;
@@ -516,8 +514,7 @@ static void fang_ten_scale_test(void **state) {
     }
 
     fang_ten_t ten;
-    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_INT8,
-        (uint32_t []) { 4, 4 }, 2, data_int));
+    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_INT8, $D(4, 4), data_int));
     int siz = (int) (ten.strides[0] * ten.dims[0]);
 
     /* Scale by 3. */
@@ -531,8 +528,8 @@ static void fang_ten_scale_test(void **state) {
     fang_ten_release(&ten);
 
     /* Create another tensor with different datatype this time. */
-    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_FLOAT16,
-        (uint32_t []) { 4, 4, 13 }, 3, data_float));
+    TENCHK(fang_ten_create(&ten, env, FANG_TEN_DTYPE_FLOAT16, $D(4, 4, 13),
+        data_float));
     siz = (int) (ten.strides[0] * ten.dims[0]);
 
     /* Scale by 2. */
@@ -556,9 +553,9 @@ static void fang_ten_fill_test(void **state) {
     fang_ten_t ten2;
 
     TENCHK(fang_ten_create(&ten1, env, FANG_TEN_DTYPE_INT8,
-        (uint32_t []) { 4, 4 }, 2, NULL));
+        $D(4, 4), NULL));
     TENCHK(fang_ten_create(&ten2, env, FANG_TEN_DTYPE_BFLOAT16,
-        (uint32_t []) { 4, 4 }, 2, NULL));
+        $D(4, 4), NULL));
 
     /* Fill the tensors. */
     fang_ten_fill(&ten1, FANG_I2G(69));
@@ -1346,70 +1343,70 @@ static void fang_ten_gemm_test(void **state) {
 
     /* Create operand tensors. */
     TENCHK(fang_ten_create(&ten_2x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 2, 2 }, 2, data));
+        $D(2, 2), data));
     TENCHK(fang_ten_create(&ten_13x17_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 13, 17 }, 2, data));
+        $D(13, 17), data));
     TENCHK(fang_ten_create(&ten_17x31_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 17, 31 }, 2, data));
+        $D(17, 31), data));
     TENCHK(fang_ten_create(&ten_64x64_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 64, 64 }, 2, data));
+        $D(64, 64), data));
     TENCHK(fang_ten_create(&ten_4x4x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 4, 5 }, 3, data));
+        $D(4, 4, 5), data));
     TENCHK(fang_ten_create(&ten_5x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 3 }, 2, data));
+        $D(5, 3), data));
     TENCHK(fang_ten_create(&ten_5x5x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 5, 7 }, 3, data));
+        $D(5, 5, 7), data));
     TENCHK(fang_ten_create(&ten_5x7x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 7, 5 }, 3, data));
+        $D(5, 7, 5), data));
     TENCHK(fang_ten_create(&ten_7x5x7x6_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 7, 5, 7, 6 }, 4, data));
+        $D(7, 5, 7, 6), data));
     TENCHK(fang_ten_create(&ten_5x6x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 6, 7 }, 3, data));
+        $D(5, 6, 7), data));
     TENCHK(fang_ten_create(&ten_3x4x2x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 3, 4, 2, 3 }, 4, data));
+        $D(3, 4, 2, 3), data));
     TENCHK(fang_ten_create(&ten_3x1x3x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 3, 1, 3, 2 }, 4, data));
+        $D(3, 1, 3, 2), data));
     TENCHK(fang_ten_create(&ten_3x5x4x3x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 3, 5, 4, 3, 3 }, 5, data));
+        $D(3, 5, 4, 3, 3), data));
     TENCHK(fang_ten_create(&ten_5x4x3x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 4, 3, 3 }, 4, data));
+        $D(5, 4, 3, 3), data));
     TENCHK(fang_ten_create(&ten_4x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 4 }, 2, data));
+        $D(4, 4), data));
     TENCHK(fang_ten_create(&ten_4x1_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 1 }, 2, data));
+        $D(4, 1), data));
     TENCHK(fang_ten_create(&ten_4x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 2 }, 2, data));
+        $D(4, 2), data));
     TENCHK(fang_ten_create(&ten_1x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 1, 4 }, 2, data));
+        $D(1, 4), data));
     TENCHK(fang_ten_create(&ten_2x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 2, 4 }, 2, data));
+        $D(2, 4), data));
 
     TENCHK(fang_ten_create(&res_2x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 2, 2 }, 2, NULL));
+        $D(2, 2), NULL));
     TENCHK(fang_ten_create(&res_13x31_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 13, 31 }, 2, NULL));
+        $D(13, 31), NULL));
     TENCHK(fang_ten_create(&res_64x64_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 64, 64 }, 2, data));
+        $D(64, 64), data));
     TENCHK(fang_ten_create(&res_4x4x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 4, 3 }, 3, NULL));
+        $D(4, 4, 3), NULL));
     TENCHK(fang_ten_create(&res_5x5x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 5, 5 }, 3, NULL));
+        $D(5, 5, 5), NULL));
     TENCHK(fang_ten_create(&res_7x5x7x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 7, 5, 7, 7 }, 4, NULL));
+        $D(7, 5, 7, 7), NULL));
     TENCHK(fang_ten_create(&res_3x4x2x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 3, 4, 2, 2 }, 4, NULL));
+        $D(3, 4, 2, 2), NULL));
     TENCHK(fang_ten_create(&res_3x5x4x3x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 3, 5, 4, 3, 3 }, 5, NULL));
+        $D(3, 5, 4, 3, 3), NULL));
     TENCHK(fang_ten_create(&res_4x1_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 1 }, 2, data));
+        $D(4, 1), data));
     TENCHK(fang_ten_create(&res_4x2_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 2 }, 2, NULL));
+        $D(4, 2), NULL));
     TENCHK(fang_ten_create(&res_1x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 1, 4 }, 2, NULL));
+        $D(1, 4), NULL));
     TENCHK(fang_ten_create(&res_2x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 2, 4 }, 2, data));
+        $D(2, 4), data));
     TENCHK(fang_ten_create(&res_4x4_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 4, 4 }, 2, data));
+        $D(4, 4), data));
 
     /* Dimensions should be incompatible. */
     assert_int_equal(fang_ten_matmul(&res_4x4_float32, &ten_4x2_float32,
@@ -1511,24 +1508,24 @@ static void fang_ten_gemm_test(void **state) {
     fang_ten_t res_5x5_float32;
 
     TENCHK(fang_ten_create(&ten_7x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 7, 5 }, 2, data));
+        $D(7, 5), data));
     TENCHK(fang_ten_create(&ten_7x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 7, 3 }, 2, data));
+        $D(7, 3), data));
     TENCHK(fang_ten_create(&ten_13x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 13, 7 }, 2, data));
+        $D(13, 7), data));
     TENCHK(fang_ten_create(&ten_5x7_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 7 }, 2, data));
+        $D(5, 7), data));
     TENCHK(fang_ten_create(&ten_6x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 6, 5 }, 2, data));
+        $D(6, 5), data));
     TENCHK(fang_ten_create(&ten_5x6_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 6 }, 2, data));
+        $D(5, 6), data));
 
     TENCHK(fang_ten_create(&res_5x3_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 3 }, 2, NULL));
+        $D(5, 3), NULL));
     TENCHK(fang_ten_create(&res_13x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 13, 5 }, 2, NULL));
+        $D(13, 5), NULL));
     TENCHK(fang_ten_create(&res_5x5_float32, env, FANG_TEN_DTYPE_FLOAT32,
-        (uint32_t []) { 5, 5 }, 2, NULL));
+        $D(5, 5), NULL));
 
     /* (7, 5) ^ T @ (7, 3) */
     TENCHK(fang_ten_gemm(FANG_TEN_GEMM_TRANSPOSE, FANG_TEN_GEMM_NO_TRANSPOSE,
