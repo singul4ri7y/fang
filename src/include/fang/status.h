@@ -1,6 +1,8 @@
 #ifndef FANG_STATUS_H
 #define FANG_STATUS_H
 
+#include <compiler.h>
+
 /* Only status of 0 refers OK. Generally, negative integer is returned in case
    of errors. */
 #define FANG_ISOK(expr)    ((expr) >= 0)
@@ -72,5 +74,13 @@
 #define FANG_INCMATDIM      209
 
 /* ================ TENSOR END ================ */
+
+
+/* ================ DECLARATIONS ================ */
+
+/*  Returns status string -> what went wrong*/
+FANG_HOT const char *fang_statstring(int status);
+
+/* ================ DECLARATIONS END ================ */
 
 #endif  // FANG_STATUS_H
