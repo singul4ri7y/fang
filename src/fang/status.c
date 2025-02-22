@@ -1,7 +1,3 @@
-
-#ifndef STATUS_STRINGS_H
-#define STATUS_STRINGS_H
-
 #include "fang/status.h"
 
 const char *fang_statstring(int status) {                      
@@ -75,6 +71,3 @@ const char *fang_statstring(int status) {
     }
     return ret;
 }                                                                                       
-
-
-#endif  // STATUS_STRINGS_H
