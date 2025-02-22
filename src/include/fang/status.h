@@ -8,7 +8,7 @@
 #define FANG_ISOK(expr)    ((expr) >= 0)
 
 /* Positive status. */
-#define FANG_OK             0 
+#define FANG_OK             0
 
 /* Invalid ID. */
 #define FANG_INVID          1
@@ -80,7 +80,6 @@
 
 /*  Returns status string -> what went wrong*/
 FANG_HOT const char *fang_statstring(int status);
-
 
 /* ================ DECLARATIONS END ================ */
 
