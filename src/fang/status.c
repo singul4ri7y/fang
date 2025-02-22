@@ -5,7 +5,7 @@ const char *fang_statstring(int status) {
         status = -status;                                                               
     }
 
-    char *ret;
+    const char *ret;
     
     switch(-status) {                                                                    
         case FANG_OK:                                                                   
@@ -69,5 +69,6 @@ const char *fang_statstring(int status) {
             ret = "Unknown status";
             break;
     }
+
     return ret;
 }                                                                                       
